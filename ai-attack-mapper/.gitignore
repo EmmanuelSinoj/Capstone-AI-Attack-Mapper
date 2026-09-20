@@ -1,0 +1,28 @@
+# Databases (build artifacts, not source)
+*.db
+*.sqlite
+*.sqlite3
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+
+# Colab / Jupyter
+.ipynb_checkpoints/
+
+# OS-generated
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Environment / secrets
+.env
+*.key
