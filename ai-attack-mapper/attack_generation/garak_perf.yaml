@@ -1,0 +1,76 @@
+# Performance/runtime-tuning config for garak, loaded via `--config`
+# (separate from garak_config.json, which is the REST *generator*
+# option file passed via --generator_option_file -- the two are loaded
+# together and don't conflict: this file only touches the `system:`
+# and `run:` sections, not `plugins.generators`).
+#
+# Why this file exists: the first real garak run against the live
+# testbed (2026-09-18, see PROGRESS_LOG.md) was killed by Aneeq after
+# running for ~25+ minutes and still having 15+ probes left in queue --
+# projected to take multiple hours at garak's stock settings. Verified
+# against garak's own docs before touching anything:
+#   - "Accelerating garak runs": https://reference.garak.ai/en/latest/faster.html
+#   - CLI reference (for the underlying --generations / --parallel_attempts
+#     / --parallel_requests flags this config mirrors):
+#     https://reference.garak.ai/en/latest/cliref.html
+#   - Custom config loading / precedence: https://reference.garak.ai/en/latest/configurable.html
+#     (CLI flags > --config file > site config > garak core defaults > plugin defaults)
+#
+# Stock garak defaults we're overriding here, and why each one is a
+# lever on OUR wall-clock time specifically (a single local Ollama
+# instance on one 8GB GPU, not a scaled remote API):
+#
+#   run.generations: 5 (stock) -> 2
+#       Garak asks the generator for 5 separate completions of EVERY
+#       prompt by default, to catch transient/non-deterministic model
+#       behavior. That's a 5x multiplier on total /chat calls. Garak's
+#       own docs note going to 1 risks missing real transient
+#       jailbreaks, so 2 is the documented floor -- still a 2.5x cut
+#       from stock.
+#
+#   run.soft_probe_prompt_cap: 256 (stock) -> 128
+#       Caps how many prompts a probe sends (soft cap -- not every
+#       probe obeys it, so this won't be an exact 2x everywhere, but it
+#       meaningfully trims the largest probes, e.g. dan.DanInTheWild's
+#       1280-prompt runs seen in the first run).
+#
+#   system.parallel_attempts: false (stock, i.e. fully serial) -> 2
+#       Lets garak have 2 attempts in flight against the testbed at
+#       once instead of one full round-trip at a time. Deliberately
+#       matched to OLLAMA_NUM_PARALLEL=2 in docker-compose.yml -- see
+#       that file's comment for the VRAM reasoning. Setting this higher
+#       than Ollama's own parallel slot count wouldn't make individual
+#       requests faster, it would just make them queue up on Ollama's
+#       side instead of garak's, so there's no free lunch here without
+#       also freeing more VRAM (e.g. by not also loading the unused
+#       llama-guard3:8b into Ollama -- see .env.example).
+#
+#   system.max_workers: 8
+#       Upper bound on garak's worker pool. Only matters as a ceiling
+#       above parallel_attempts; 8 is comfortably above our
+#       parallel_attempts: 2 with room to raise the latter later
+#       without touching this again.
+#
+# Net expected effect vs. the killed run: roughly generations (2.5x) x
+# prompt-cap (~up to 2x on the biggest probes) x parallelism (~2x,
+# bottlenecked by the GPU actually being able to batch 2 at once) --
+# not a precise multiplier since probe sizes vary and REST round-trip
+# latency doesn't parallelize perfectly, but it should turn a
+# multi-hour run into something closer to 30-60 minutes for the same
+# --probes promptinject,dan,encoding set. Time it and adjust these
+# numbers rather than trusting this estimate blindly.
+#
+# Usage: garak_runner.py already passes --config garak_perf.yaml
+# alongside --generator_option_file garak_config.json. To go back to
+# garak's stock (slower, more thorough) behavior for a final/official
+# run, comment out the --config line in garak_runner.py rather than
+# editing this file, so the tuned values stay available for future fast
+# iteration.
+
+system:
+  parallel_attempts: 2
+  max_workers: 8
+
+run:
+  generations: 2
+  soft_probe_prompt_cap: 128
