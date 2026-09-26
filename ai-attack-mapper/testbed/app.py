@@ -20,7 +20,7 @@ import logging
 import os
 import re
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 import httpx
 from fastapi import BackgroundTasks, FastAPI
@@ -38,12 +38,28 @@ SYSTEM_PROMPT_PATH = Path(__file__).parent / "system_prompt.txt"
 app = FastAPI(title="AI Attack Mapper Testbed", version="0.2.0")
 
 
+class ChatMessage(BaseModel):
+    # "user" or "assistant" -- mirrors Ollama's own message role names,
+    # deliberately not re-inventing a different vocabulary here.
+    role: str
+    content: str
+
+
 class ChatRequest(BaseModel):
     prompt: str
     # Optional: set by Attack Generation callers (Garak/PyRIT) so a
     # given interaction's alert can later be traced back to the probe
     # that produced it. Left null for ordinary/manual traffic.
     probe_id: Optional[str] = None
+    # Optional (added 2026-09-26): prior conversation turns, oldest
+    # first, NOT including the current `prompt`. Lets a caller run a
+    # multi-turn escalation (see attack_generation/campaign_runner.py
+    # and the dashboard's Campaign Console) where each turn actually
+    # sees what came before it, rather than every "turn" being an
+    # isolated single-shot request that can't build on an established
+    # frame. Left null/omitted, behavior is identical to before this
+    # field existed -- single system + user message, no history.
+    history: Optional[List[ChatMessage]] = None
 
 
 class ChatResponse(BaseModel):
@@ -66,12 +82,24 @@ def _read_system_prompt() -> tuple[str, int]:
     return body, version
 
 
-def _log_interaction_safe(prompt: str, response: str, probe_id: Optional[str], version: int) -> None:
+def _log_interaction_safe(
+    prompt: str,
+    response: str,
+    probe_id: Optional[str],
+    version: int,
+    system_prompt: Optional[str] = None,
+) -> None:
     """Wrap log_interaction so a detection-layer failure can never take
     down the testbed or surface as a 500 to the caller -- it only ever
-    costs that one interaction's alert."""
+    costs that one interaction's alert.
+
+    `system_prompt` (added 2026-09-26) is the actual prompt text used
+    for this request, forwarded through to the heuristic detector so it
+    can confirm a genuine verbatim leak in the response -- see
+    detection/heuristics.py for why this closes a real confidence-
+    scoring gap (a leak used to score identically to a flat refusal)."""
     try:
-        log_interaction(prompt, response, probe_id, version)
+        log_interaction(prompt, response, probe_id, version, system_prompt)
     except Exception:
         logger.exception("Detection/logging failed for this interaction (response was already sent).")
 
@@ -85,6 +113,11 @@ async def healthz():
 async def chat(req: ChatRequest, background_tasks: BackgroundTasks):
     system_prompt, version = _read_system_prompt()
 
+    messages = [{"role": "system", "content": system_prompt}]
+    if req.history:
+        messages.extend({"role": h.role, "content": h.content} for h in req.history)
+    messages.append({"role": "user", "content": req.prompt})
+
     async with httpx.AsyncClient(timeout=180.0) as client:
         # 180s, not 60s: a model's *first* request after container start
         # (or after OLLAMA_KEEP_ALIVE idles it out) has to load several
@@ -95,10 +128,7 @@ async def chat(req: ChatRequest, background_tasks: BackgroundTasks):
             f"{OLLAMA_HOST}/api/chat",
             json={
                 "model": MODEL,
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": req.prompt},
-                ],
+                "messages": messages,
                 "stream": False,
             },
         )
@@ -108,7 +138,7 @@ async def chat(req: ChatRequest, background_tasks: BackgroundTasks):
     response_text = data.get("message", {}).get("content", "")
 
     background_tasks.add_task(
-        _log_interaction_safe, req.prompt, response_text, req.probe_id, version
+        _log_interaction_safe, req.prompt, response_text, req.probe_id, version, system_prompt
     )
 
     return ChatResponse(

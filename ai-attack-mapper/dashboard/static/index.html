@@ -224,9 +224,136 @@
   }
   footer span{color:var(--cyan);}
 
+  /* ---------- attack console ---------- */
+  .console{margin-bottom:18px;}
+  .console-status{
+    font-size:10px; letter-spacing:2px; padding:3px 10px; border-radius:10px;
+    border:1px solid var(--border-strong); color:var(--cyan);
+  }
+  .console-status.busy{color:var(--amber); border-color:rgba(255,176,32,0.5); animation:dotpulse 1s ease-in-out infinite;}
+  .preset-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:14px;}
+  .preset-card{
+    border:1px solid var(--border); border-radius:8px; padding:14px;
+    background:rgba(255,255,255,0.015); display:flex; flex-direction:column; gap:8px;
+    transition:border-color .25s, box-shadow .25s;
+  }
+  .preset-card:hover{border-color:var(--border-strong); box-shadow:0 0 16px rgba(34,229,255,0.12);}
+  .preset-card h3{
+    font-family:var(--head); font-size:13px; letter-spacing:1px; margin:0; color:#eaffff;
+  }
+  .preset-card p{font-size:11px; color:var(--text-dim); margin:0; line-height:1.5; flex:1;}
+  .cat-badge{
+    align-self:flex-start; font-size:9px; letter-spacing:1.5px; padding:2px 8px; border-radius:8px;
+    text-transform:uppercase; border:1px solid; white-space:nowrap;
+  }
+  .cat-badge.prompt_exfiltration{color:var(--magenta); border-color:rgba(185,103,255,0.5); background:rgba(185,103,255,0.08);}
+  .cat-badge.persona_jailbreak{color:var(--amber); border-color:rgba(255,176,32,0.5); background:rgba(255,176,32,0.08);}
+  .cat-badge.filter_bypass{color:var(--red); border-color:rgba(255,59,92,0.5); background:rgba(255,59,92,0.08);}
+  .cat-badge.custom{color:var(--cyan); border-color:rgba(34,229,255,0.5); background:rgba(34,229,255,0.08);}
+  .launch-btn{
+    font-family:var(--head); font-size:11px; letter-spacing:2px; padding:9px 12px;
+    border-radius:6px; border:1px solid var(--border-strong); background:rgba(34,229,255,0.08);
+    color:var(--cyan); cursor:pointer; transition:all .2s;
+  }
+  .launch-btn:hover:not(:disabled){background:rgba(34,229,255,0.18); box-shadow:0 0 14px rgba(34,229,255,0.35);}
+  .launch-btn:disabled{opacity:0.55; cursor:default; color:var(--amber); border-color:rgba(255,176,32,0.4); animation:dotpulse 1s ease-in-out infinite;}
+  .custom-row{display:flex; gap:10px; margin-bottom:6px;}
+  .custom-row input{
+    flex:1; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:6px;
+    padding:10px 12px; color:var(--text); font-family:var(--mono); font-size:12px;
+  }
+  .custom-row input:focus{outline:none; border-color:var(--border-strong);}
+  .custom-row .launch-btn{white-space:nowrap; padding:0 18px;}
+
+  #attackHistory{display:flex; flex-direction:column; gap:10px; margin-top:12px;}
+  .report-card{
+    border:1px solid var(--border); border-radius:8px; overflow:hidden;
+    animation:materialize .5s ease-out;
+  }
+  @keyframes materialize{
+    0%{opacity:0; transform:translateY(-6px); border-color:var(--border-strong);}
+    100%{opacity:1; transform:translateY(0);}
+  }
+  .report-card.flagged{border-color:rgba(255,59,92,0.4);}
+  .report-card.clean{border-color:rgba(57,255,136,0.3);}
+  .report-head{
+    display:flex; align-items:center; gap:10px; padding:10px 14px;
+    background:rgba(255,255,255,0.02); cursor:pointer;
+  }
+  .report-head .rtitle{font-family:var(--head); font-size:12px; letter-spacing:1px; flex:1;}
+  .report-head .rtime{font-size:10px; color:var(--text-dim);}
+  .report-body{padding:0 14px 14px; display:none;}
+  .report-body.open{display:block;}
+  .report-row{display:flex; align-items:center; gap:12px; margin:10px 0;}
+  .conf-big-bar{flex:1; height:10px; border-radius:5px; background:rgba(255,255,255,0.08); overflow:hidden;}
+  .conf-big-bar > i{display:block; height:100%; background:linear-gradient(90deg,var(--cyan),var(--red)); transition:width .7s ease;}
+  .conf-num{font-family:var(--head); font-size:16px; min-width:52px; text-align:right;}
+  .chip-row{display:flex; flex-wrap:wrap; gap:6px; margin:8px 0;}
+  .chip{
+    font-size:10px; padding:3px 9px; border-radius:10px; border:1px solid var(--border-strong);
+    color:var(--cyan); background:rgba(34,229,255,0.06); letter-spacing:0.5px;
+  }
+  .chip.empty{color:var(--text-dim); border-color:var(--border);}
+  .resp-box{
+    background:rgba(0,0,0,0.35); border:1px solid var(--border); border-radius:6px;
+    padding:10px 12px; font-size:11px; line-height:1.6; color:var(--text-dim);
+    max-height:120px; overflow-y:auto; white-space:pre-wrap; word-break:break-word;
+  }
+  .prompt-box{
+    font-size:11px; color:var(--text-dim); margin:8px 0; padding:8px 10px;
+    border-left:2px solid var(--border-strong); background:rgba(255,255,255,0.015);
+  }
+  .prompt-box b{color:var(--cyan); font-weight:normal;}
+  .report-meta{font-size:10px; color:var(--text-dim); margin-top:8px; letter-spacing:0.5px;}
+
+  /* ---------- multi-turn campaign console ---------- */
+  .section-divider{
+    display:flex; align-items:center; gap:10px; margin:20px 0 12px;
+    font-size:10px; letter-spacing:2px; color:var(--text-dim);
+  }
+  .section-divider::before, .section-divider::after{content:""; flex:1; height:1px; background:var(--border);}
+  .campaign-grid{grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));}
+  .cat-badge.campaign{color:var(--magenta); border-color:rgba(185,103,255,0.5); background:rgba(185,103,255,0.08);}
+  .preset-card.campaign-card{border-color:rgba(185,103,255,0.3);}
+  .preset-card.campaign-card:hover{border-color:var(--magenta); box-shadow:0 0 16px rgba(185,103,255,0.18);}
+  .preset-card.campaign-card .launch-btn{border-color:rgba(185,103,255,0.5); color:var(--magenta); background:rgba(185,103,255,0.08);}
+  .preset-card.campaign-card .launch-btn:hover:not(:disabled){background:rgba(185,103,255,0.18); box-shadow:0 0 14px rgba(185,103,255,0.35);}
+
+  .report-card.campaign-report{border-color:rgba(185,103,255,0.4);}
+  .badge.CAMPAIGN{background:rgba(185,103,255,0.18); color:var(--magenta); border:1px solid rgba(185,103,255,0.5);}
+  .turn-ladder{position:relative; padding-left:20px; margin-top:6px;}
+  .turn-ladder::before{
+    content:""; position:absolute; left:5px; top:6px; bottom:6px; width:2px;
+    background:linear-gradient(180deg, var(--cyan), var(--magenta));
+    opacity:0.45;
+  }
+  .turn-node{
+    position:relative; margin-bottom:14px; padding:12px 14px 10px;
+    border:1px solid var(--border); border-radius:8px; background:rgba(255,255,255,0.012);
+    animation:materialize .5s ease-out backwards;
+  }
+  .turn-node:last-child{margin-bottom:0;}
+  .turn-node::before{
+    content:""; position:absolute; left:-20px; top:16px; width:9px; height:9px; border-radius:50%;
+    background:var(--cyan); box-shadow:0 0 6px var(--cyan); border:2px solid var(--bg);
+  }
+  .turn-node.flagged::before{background:var(--red); box-shadow:0 0 6px var(--red);}
+  .turn-label{
+    font-family:var(--head); font-size:10px; letter-spacing:1.5px; color:var(--text-dim); margin-bottom:2px;
+  }
+  .campaign-summary{
+    font-size:11px; color:var(--text-dim); padding:8px 12px; margin-bottom:4px;
+    border-left:2px solid var(--magenta); background:rgba(185,103,255,0.05);
+  }
+  .campaign-summary b{color:var(--magenta); font-weight:normal;}
+
   @media (max-width: 1000px){
     .grid{grid-template-columns:1fr;}
     .stats-row{grid-template-columns:repeat(2,1fr);}
+    .preset-grid{grid-template-columns:1fr 1fr;}
+  }
+  @media (max-width: 640px){
+    .preset-grid{grid-template-columns:1fr;}
   }
 </style>
 </head>
@@ -246,6 +373,25 @@
       <div class="sys-pill" id="sysPill"><span class="dot pulse" id="sysDot"></span><span id="sysText">SYNCING</span></div>
     </div>
   </header>
+
+  <div class="panel console">
+    <div class="panel-head">
+      <span>▌ ATTACK CONSOLE</span>
+      <span class="console-status" id="attackStatus">READY</span>
+    </div>
+    <div class="panel-body">
+      <div class="preset-grid" id="presetGrid"><div class="empty-state">Loading presets…</div></div>
+      <div class="custom-row">
+        <input type="text" id="customPrompt" maxlength="600" placeholder="Or type a custom prompt to fire at the live testbed…">
+        <button class="launch-btn" id="customBtn">▶ LAUNCH CUSTOM</button>
+      </div>
+
+      <div class="section-divider"><span>MULTI-TURN CAMPAIGNS · scripted escalation, real conversation history</span></div>
+      <div class="preset-grid campaign-grid" id="campaignGrid"><div class="empty-state">Loading campaigns…</div></div>
+
+      <div id="attackHistory"></div>
+    </div>
+  </div>
 
   <div class="stats-row">
     <div class="tile">
@@ -319,7 +465,7 @@
     </div>
   </div>
 
-  <footer>AI ATTACK MAPPER · LIVE OPS CONSOLE · <span>alerts.db is the single source of truth</span> · this view is read-only</footer>
+  <footer>AI ATTACK MAPPER · LIVE OPS CONSOLE · <span>alerts.db is the single source of truth</span> · only the Attack &amp; Campaign Consoles write traffic (to the testbed, never to the database)</footer>
 </div>
 
 <script>
@@ -517,6 +663,244 @@ function tickClock(){
 }
 
 window.addEventListener('resize', drawChart);
+
+// ---------- Attack Console ----------
+let attackBusy = false;
+let historyCount = 0;
+
+function setConsoleStatus(text, busy){
+  const el = $('attackStatus');
+  el.textContent = text;
+  el.className = 'console-status' + (busy ? ' busy' : '');
+}
+
+function setButtonsDisabled(disabled){
+  document.querySelectorAll('.launch-btn').forEach(b => { b.disabled = disabled; });
+}
+
+function presetCard(p){
+  return `
+    <div class="preset-card">
+      <span class="cat-badge ${p.category}">${p.category.replace('_',' ')}</span>
+      <h3>${escapeHtml(p.title)}</h3>
+      <p>${escapeHtml(p.description)}</p>
+      <button class="launch-btn" data-preset="${p.id}">▶ LAUNCH ATTACK</button>
+    </div>`;
+}
+
+async function loadPresets(){
+  try{
+    const r = await fetch('/api/attack/presets'); const d = await r.json();
+    $('presetGrid').innerHTML = d.presets.map(presetCard).join('');
+    document.querySelectorAll('#presetGrid .launch-btn').forEach(btn => {
+      btn.addEventListener('click', () => fireAttack({preset_id: btn.dataset.preset}, btn));
+    });
+  } catch(e){
+    $('presetGrid').innerHTML = '<div class="empty-state">Could not load presets -- dashboard API unreachable.</div>';
+  }
+}
+
+function detectorChips(chips){
+  if(!chips || !chips.length) return '<span class="chip empty">no detector matched</span>';
+  return chips.map(c => `<span class="chip">${escapeHtml(c)}</span>`).join('');
+}
+
+function reportCard(d){
+  historyCount += 1;
+  const id = 'rpt' + historyCount;
+  const flagged = !!d.flagged;
+  const confPct = Math.round((d.confidence || 0) * 100);
+  const verdict = d.testbed_error ? 'ERROR' : (flagged ? 'FLAGGED' : 'CLEAN');
+  const verdictClass = d.testbed_error ? 'FLAGGED' : (flagged ? 'FLAGGED' : 'CLEAN');
+  const now = new Date().toISOString().slice(11,19) + ' UTC';
+
+  const body = d.testbed_error
+    ? `<div class="report-row"><span style="color:var(--red)">Could not reach the testbed: ${escapeHtml(d.testbed_error)}</span></div>`
+    : `
+      <div class="prompt-box"><b>PAYLOAD →</b> ${escapeHtml(d.prompt)}</div>
+      <div class="report-row">
+        <span class="badge ${verdictClass}">${verdict}</span>
+        <div class="conf-big-bar"><i style="width:${confPct}%"></i></div>
+        <div class="conf-num">${confPct}%</div>
+      </div>
+      <div class="chip-row">${detectorChips(d.detector_chips)}</div>
+      <div class="resp-box">${escapeHtml(d.response)}</div>
+      <div class="report-meta">
+        model: ${escapeHtml(d.model || '?')} · response time: ${d.elapsed_ms} ms ·
+        ${d.logged ? `logged as alert #${d.alert_id}` : 'not yet reflected in alerts.db (detector may still be running)'}
+      </div>`;
+
+  const html = `
+    <div class="report-card ${flagged ? 'flagged' : 'clean'}" id="${id}">
+      <div class="report-head" onclick="document.getElementById('${id}b').classList.toggle('open')">
+        <span class="badge ${verdictClass}">${verdict}</span>
+        <span class="rtitle">${escapeHtml(d.label)}</span>
+        <span class="rtime">${now}</span>
+      </div>
+      <div class="report-body open" id="${id}b">${body}</div>
+    </div>`;
+
+  const hist = $('attackHistory');
+  hist.insertAdjacentHTML('afterbegin', html);
+  while(hist.children.length > 20){ hist.removeChild(hist.lastChild); }
+}
+
+async function fireAttack(payload, btn){
+  if(attackBusy) return;
+  attackBusy = true;
+  setButtonsDisabled(true);
+  if(btn) btn.textContent = '◉ RUNNING…';
+  setConsoleStatus('SENDING PAYLOAD…', true);
+  try{
+    const r = await fetch('/api/attack/run', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload),
+    });
+    const d = await r.json();
+    if(d.error){
+      setConsoleStatus('ERROR: ' + d.error, false);
+    } else {
+      reportCard(d);
+      setConsoleStatus(d.testbed_error ? 'TESTBED UNREACHABLE' : 'READY', false);
+      // an attack just produced a new alert row -- nudge the feed/stats
+      // to refresh immediately instead of waiting for their own interval
+      pollFeed(); pollStats();
+    }
+  } catch(e){
+    setConsoleStatus('REQUEST FAILED', false);
+  } finally{
+    attackBusy = false;
+    setButtonsDisabled(false);
+    if(btn) btn.textContent = '▶ LAUNCH ATTACK';
+    setTimeout(() => { if(!attackBusy) setConsoleStatus('READY', false); }, 4000);
+  }
+}
+
+// ---------- Campaign Console (multi-turn escalation) ----------
+function campaignCard(c){
+  return `
+    <div class="preset-card campaign-card">
+      <span class="cat-badge campaign">${c.turn_count} TURNS</span>
+      <h3>${escapeHtml(c.title)}</h3>
+      <p>${escapeHtml(c.description)}</p>
+      <button class="launch-btn" data-campaign="${c.id}">▶ LAUNCH CAMPAIGN</button>
+    </div>`;
+}
+
+async function loadCampaigns(){
+  try{
+    const r = await fetch('/api/campaign/list'); const d = await r.json();
+    $('campaignGrid').innerHTML = d.campaigns.map(campaignCard).join('');
+    document.querySelectorAll('#campaignGrid .launch-btn').forEach(btn => {
+      btn.addEventListener('click', () => fireCampaign(btn.dataset.campaign, btn));
+    });
+  } catch(e){
+    $('campaignGrid').innerHTML = '<div class="empty-state">Could not load campaigns -- dashboard API unreachable.</div>';
+  }
+}
+
+function turnNode(t, i){
+  const flagged = !!t.flagged;
+  const confPct = Math.round((t.confidence || 0) * 100);
+  const verdict = t.testbed_error ? 'ERROR' : (flagged ? 'FLAGGED' : 'CLEAN');
+  const body = t.testbed_error
+    ? `<div style="color:var(--red)">Could not reach the testbed: ${escapeHtml(t.testbed_error)}</div>`
+    : `
+      <div class="prompt-box"><b>PROMPT →</b> ${escapeHtml(t.prompt)}</div>
+      <div class="report-row">
+        <span class="badge ${verdict}">${verdict}</span>
+        <div class="conf-big-bar"><i style="width:${confPct}%"></i></div>
+        <div class="conf-num">${confPct}%</div>
+      </div>
+      <div class="chip-row">${detectorChips(t.detector_chips)}</div>
+      <div class="resp-box">${escapeHtml(t.response)}</div>`;
+  return `
+    <div class="turn-node ${flagged ? 'flagged' : ''}" style="animation-delay:${i * 0.35}s">
+      <div class="turn-label">TURN ${i + 1}</div>
+      ${body}
+    </div>`;
+}
+
+function campaignReport(d){
+  historyCount += 1;
+  const wrapId = 'camp' + historyCount;
+  const turns = d.turns || [];
+  const now = new Date().toISOString().slice(11,19) + ' UTC';
+
+  const completed = turns.filter(t => !t.testbed_error);
+  const firstConf = completed.length ? Math.round((completed[0].confidence || 0) * 100) : 0;
+  const lastConf = completed.length ? Math.round((completed[completed.length - 1].confidence || 0) * 100) : 0;
+  const delta = lastConf - firstConf;
+  const summary = completed.length > 1
+    ? `confidence drifted <b>${firstConf}% → ${lastConf}%</b> across ${completed.length} turns (${delta >= 0 ? '+' : ''}${delta} pts) as the frame escalated`
+    : `${completed.length} of ${turns.length} turn(s) completed`;
+
+  const anyFlagged = turns.some(t => t.flagged);
+  const turnsHtml = turns.map((t, i) => turnNode(t, i)).join('');
+
+  const html = `
+    <div class="report-card campaign-report ${anyFlagged ? 'flagged' : 'clean'}" id="${wrapId}">
+      <div class="report-head" onclick="document.getElementById('${wrapId}b').classList.toggle('open')">
+        <span class="badge CAMPAIGN">CAMPAIGN</span>
+        <span class="rtitle">${escapeHtml(d.title)}</span>
+        <span class="rtime">${now}</span>
+      </div>
+      <div class="report-body open" id="${wrapId}b">
+        <div class="campaign-summary">${summary}</div>
+        <div class="turn-ladder">${turnsHtml}</div>
+      </div>
+    </div>`;
+
+  const hist = $('attackHistory');
+  hist.insertAdjacentHTML('afterbegin', html);
+  while(hist.children.length > 20){ hist.removeChild(hist.lastChild); }
+}
+
+async function fireCampaign(campaignId, btn){
+  if(attackBusy) return;
+  attackBusy = true;
+  setButtonsDisabled(true);
+  if(btn) btn.textContent = '◉ ESCALATING…';
+  setConsoleStatus('RUNNING MULTI-TURN CAMPAIGN…', true);
+  try{
+    const r = await fetch('/api/campaign/run', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({campaign_id: campaignId}),
+    });
+    const d = await r.json();
+    if(d.error){
+      setConsoleStatus('ERROR: ' + d.error, false);
+    } else {
+      campaignReport(d);
+      setConsoleStatus('READY', false);
+      // several new alert rows just landed (one per turn) -- refresh now
+      pollFeed(); pollStats();
+    }
+  } catch(e){
+    setConsoleStatus('REQUEST FAILED', false);
+  } finally{
+    attackBusy = false;
+    setButtonsDisabled(false);
+    if(btn) btn.textContent = '▶ LAUNCH CAMPAIGN';
+    setTimeout(() => { if(!attackBusy) setConsoleStatus('READY', false); }, 4000);
+  }
+}
+
+$('customBtn').addEventListener('click', () => {
+  const input = $('customPrompt');
+  const text = input.value.trim();
+  if(!text) return;
+  const btn = $('customBtn');
+  fireAttack({prompt: text}, btn);
+});
+$('customPrompt').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter') $('customBtn').click();
+});
+
+loadPresets();
+loadCampaigns();
 
 // staggered polling so the panels don't all thrash the API in lockstep
 setInterval(tickClock, 1000); tickClock();
