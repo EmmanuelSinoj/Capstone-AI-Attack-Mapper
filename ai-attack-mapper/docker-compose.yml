@@ -1,0 +1,115 @@
+services:
+  # ---------------------------------------------------------------------
+  # Ollama: hosts every local model used by the system (testbed model,
+  # judge/guard model for detection, and the local classification model).
+  # GPU reservation targets the NVIDIA RTX 5060 via Docker Desktop's
+  # WSL2 GPU passthrough. Requires Docker Desktop >= 4.29 with the
+  # "Use NVIDIA GPU" option enabled in Settings > Resources.
+  # ---------------------------------------------------------------------
+  ollama:
+    image: ollama/ollama:latest
+    container_name: aam-ollama
+    restart: unless-stopped
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_KEEP_ALIVE=30m
+      # Lets Ollama batch a small number of concurrent /chat requests on
+      # the GPU instead of queueing them one-at-a-time. Kept conservative
+      # (2, not Ollama's auto-picked 4) because llama3:8b already uses
+      # ~4.7GB of the RTX 5060's 8GB VRAM budget on its own -- each extra
+      # parallel slot adds its own KV cache on top of that base weight
+      # cost, and we don't have headroom to guess higher without risking
+      # an OOM mid-run. Raise this only after confirming with
+      # `docker stats aam-ollama` / `nvidia-smi` that there's still free
+      # VRAM at 2, and keep attack_generation's --parallel_attempts (see
+      # garak_perf.yaml) no higher than this number -- extra client-side
+      # concurrency beyond what Ollama will actually batch just piles up
+      # in its request queue rather than going any faster.
+      - OLLAMA_NUM_PARALLEL=2
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------
+  # Testbed: the deployed application under attack in the Live Attack
+  # Path. A thin FastAPI wrapper around Ollama with a versioned,
+  # patchable system prompt. Placeholder until Testbed & Detection
+  # track work begins.
+  # ---------------------------------------------------------------------
+  testbed:
+    build:
+      context: .
+      dockerfile: live_attack_path/testbed/Dockerfile
+    container_name: aam-testbed
+    restart: unless-stopped
+    depends_on:
+      ollama:
+        condition: service_healthy
+    ports:
+      - "${TESTBED_PORT:-8000}:8000"
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - TESTBED_MODEL=${TESTBED_MODEL:-llama3:8b}
+      # Judge-model detector (live_attack_path/detection/judge.py) needs
+      # an approved-access token for the gated Prompt-Guard-86M model.
+      # Leave blank to run heuristics-only detection.
+      - HF_TOKEN=${HF_TOKEN:-}
+    volumes:
+      # Bind-mounted (not baked into the image) so editing these during
+      # development doesn't require a rebuild, and so alerts.db persists
+      # on the host across container rebuilds (NFR2).
+      - ./live_attack_path/testbed/system_prompt.txt:/app/system_prompt.txt
+      - ./live_attack_path/detection:/app/detection
+      - ./alert_store:/app/alert_store
+
+  # ---------------------------------------------------------------------
+  # Alert Store: SQLite is file-backed and needs no server. It has no
+  # service block of its own -- it's the bind-mounted ./alert_store
+  # volume above, written to by the testbed's detection layer and read
+  # by whatever the Classification Engine / Evaluation components turn
+  # into once those are built. alerts.db itself is gitignored; the
+  # schema (schema.sql) is what's version-controlled.
+  # ---------------------------------------------------------------------
+
+  # ---------------------------------------------------------------------
+  # Dashboard: read-only "ops console" web UI over alerts.db + Ollama +
+  # testbed, so a garak/PyRIT run can be watched from a browser instead
+  # of three terminal windows. See live_attack_path/dashboard/README.md.
+  # Everything it reads is bind-mounted `:ro` -- this service cannot
+  # write to alerts.db or call /chat, and doesn't need GPU access itself.
+  # depends_on testbed only (not `condition: service_healthy`) since the
+  # dashboard is still useful -- shows services as red/offline -- even
+  # before the rest of the stack is up.
+  # ---------------------------------------------------------------------
+  dashboard:
+    build:
+      context: .
+      dockerfile: live_attack_path/dashboard/Dockerfile
+    container_name: aam-dashboard
+    restart: unless-stopped
+    depends_on:
+      - testbed
+    ports:
+      - "${DASHBOARD_PORT:-8080}:8080"
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - TESTBED_HOST=http://testbed:8000
+    volumes:
+      - ./alert_store:/app/alert_store:ro
+      - ./live_attack_path/attack_generation/reports:/app/reports:ro
+
+volumes:
+  ollama_data:
+    name: aam_ollama_data
