@@ -1,30 +1,11 @@
 import json
 import os
-from collections import defaultdict
 from detection import heuristics
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA_PATH = os.path.join(HERE, "..", "labeled_prompts_500.json")
 
 CANDIDATE_THRESHOLDS = [0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90]
-
-
-def stratified_split(data, train_frac, seed=42):
-    import random
-    rng = random.Random(seed)
-    by_label = defaultdict(list)
-    for row in data:
-        by_label[row["label"]].append(row)
-    train, test = [], []
-    for label, rows in by_label.items():
-        rows = rows[:]
-        rng.shuffle(rows)
-        cut = int(len(rows) * train_frac)
-        train.extend(rows[:cut])
-        test.extend(rows[cut:])
-    rng.shuffle(train)
-    rng.shuffle(test)
-    return train, test
 
 
 def get_raw_scores(data):
@@ -59,41 +40,33 @@ def main():
             "This file should sit one level up from this script (at the "
             "repo's detection/ root), shared across all three versions."
         )
-    with open(DATA_PATH) as f:
+    with open(DATA_PATH, encoding="utf-8") as f:
         data = json.load(f)
 
-    train, test = stratified_split(data, 0.70)
     print(f"Loaded {len(data)} prompts from {DATA_PATH}")
-    print(f"Split: {len(train)} tuning / {len(test)} held-out test\n")
+    print("All prompts are used as the test set (no train/test split): nothing is fitted to them.\n")
 
-    train_scored = get_raw_scores(train)
-    test_scored = get_raw_scores(test)
+    scored = get_raw_scores(data)
 
     print("=== V3 (improved: normalization + expanded fuzzy vocabulary) ===")
-    print("=== Threshold sweep on TUNING split ===")
+    print("=== Threshold sweep on all prompts ===")
     print(f"{'Thresh':>7} {'TP':>4} {'FP':>4} {'TN':>4} {'FN':>4} {'Prec':>7} {'Recall':>7} {'F1':>7}")
-    results = [evaluate_at_threshold(train_scored, t) for t in CANDIDATE_THRESHOLDS]
+    results = [evaluate_at_threshold(scored, t) for t in CANDIDATE_THRESHOLDS]
     for r in results:
         print(f"{r['threshold']:>7.2f} {r['tp']:>4} {r['fp']:>4} {r['tn']:>4} {r['fn']:>4} "
               f"{r['precision']:>7.3f} {r['recall']:>7.3f} {r['f1']:>7.3f}")
 
-    best = max(results, key=lambda r: r["f1"])
-    print(f"\nBest by F1: threshold={best['threshold']:.2f}")
+    at65 = evaluate_at_threshold(scored, 0.65)
+    print(f"\nResult at the fixed threshold 0.65: TP={at65['tp']} FP={at65['fp']} TN={at65['tn']} FN={at65['fn']} "
+          f"precision={at65['precision']:.3f} recall={at65['recall']:.3f} f1={at65['f1']:.3f}")
 
-    final = evaluate_at_threshold(test_scored, best["threshold"])
-    print(f"HELD-OUT test at that threshold: precision={final['precision']:.3f} "
-          f"recall={final['recall']:.3f} f1={final['f1']:.3f}")
-
-    at65 = evaluate_at_threshold(test_scored, 0.65)
-    print(f"\nHELD-OUT test at threshold=0.65: precision={at65['precision']:.3f} recall={at65['recall']:.3f}")
-
-    benign_scores = [r["rebuff_score"] for r in train_scored if r["label"] == "benign"]
-    attack_scores_missed = [r["rebuff_score"] for r in train_scored if r["label"] == "attack" and not r["exact_flagged"]]
+    benign_scores = [r["rebuff_score"] for r in scored if r["label"] == "benign"]
+    attack_scores_missed = [r["rebuff_score"] for r in scored if r["label"] == "attack" and not r["exact_flagged"]]
     print(f"\nHighest benign score: {max(benign_scores):.3f}")
     print(f"Lowest attack score (not caught by regex): {min(attack_scores_missed):.3f}")
 
-    zero_attacks = [r for r in test_scored if r["label"] == "attack" and r["rebuff_score"] == 0 and not r["exact_flagged"]]
-    print(f"\n=== Zero-score attacks in held-out test ===")
+    zero_attacks = [r for r in scored if r["label"] == "attack" and r["rebuff_score"] == 0 and not r["exact_flagged"]]
+    print(f"\n=== Zero-score attacks (all prompts) ===")
     for r in zero_attacks:
         print(f"  {r['category']:<20} | {r['text']}")
     print(f"Total: {len(zero_attacks)}")
