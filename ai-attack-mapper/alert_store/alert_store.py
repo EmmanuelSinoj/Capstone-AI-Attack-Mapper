@@ -33,6 +33,15 @@ from typing import Optional, List
 
 from alert_schema import Alert, CREATE_TABLE_SQL
 
+# Columns added to CREATE_TABLE_SQL after a teammate's alerts.db may
+# already exist. CREATE TABLE IF NOT EXISTS is a no-op on an existing
+# table, so it won't backfill new columns -- this self-heal migration
+# runs on every init_db() call. Safe to run repeatedly.
+_MIGRATION_COLUMNS = {
+    "run_id": "TEXT",
+    "attack_succeeded": "INTEGER",
+}
+
 
 @contextmanager
 def _connect(db_path: str):
@@ -49,16 +58,20 @@ def _connect(db_path: str):
 def init_db(db_path: str) -> None:
     """
     Creates the alerts table if it doesn't already exist.
-    Safe to call every time the app starts — it won't wipe existing data.
+    Safe to call every time the app starts -- it won't wipe existing data.
     """
     with _connect(db_path) as conn:
         conn.execute(CREATE_TABLE_SQL)
+        existing = {row[1] for row in conn.execute("PRAGMA table_info(alerts)")}
+        for name, coltype in _MIGRATION_COLUMNS.items():
+            if name not in existing:
+                conn.execute(f"ALTER TABLE alerts ADD COLUMN {name} {coltype}")
 
 
 def insert_alert(db_path: str, alert: Alert) -> int:
     """
     Inserts one alert record. Validates it first (raises ValueError on
-    bad data — invalid source/category, out-of-range confidence, etc.).
+    bad data -- invalid source/category, out-of-range confidence, etc.).
     Returns the new row's id.
     """
     alert.validate()
@@ -66,8 +79,9 @@ def insert_alert(db_path: str, alert: Alert) -> int:
         cursor = conn.execute(
             """
             INSERT INTO alerts
-                (source, input, output, detector, confidence, category, timestamp, system_prompt_version)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                (source, input, output, detector, confidence, category, timestamp,
+                 system_prompt_version, run_id, attack_succeeded)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 alert.source,
@@ -78,6 +92,9 @@ def insert_alert(db_path: str, alert: Alert) -> int:
                 alert.category,
                 alert.timestamp,
                 alert.system_prompt_version,
+                alert.run_id,
+                # SQLite has no native bool; store as 0/1/NULL.
+                None if alert.attack_succeeded is None else int(alert.attack_succeeded),
             ),
         )
         return cursor.lastrowid
@@ -93,7 +110,7 @@ def query_alerts(
     Fetches alerts, optionally filtered by source ('live'/'synthetic')
     and/or category. Pass neither to get everything.
 
-    Returns a list of sqlite3.Row objects — access fields like a dict,
+    Returns a list of sqlite3.Row objects -- access fields like a dict,
     e.g. row["input"], row["confidence"].
     """
     query = "SELECT * FROM alerts WHERE 1=1"
