@@ -24,7 +24,9 @@ Rebuff's full SDK needs an OpenAI key + Pinecone DB, conflicting with this proje
 
 ## Status
 
-Superseded by v2 and v3 (see their READMEs) — kept here as the baseline for a documented before/after comparison, not for active use.
+Superseded by v2. The current recommendation is v4 (see `../detection_v4/README.md`). Kept here as the baseline for a documented before/after comparison, not for active use.
+
+**Stress set** (`../stress_prompts.json`, 70 prompts, threshold 0.65): 1 of 40 normal prompts wrongly flagged, 3 of 30 novel attacks caught.
 
 ## Run it
 

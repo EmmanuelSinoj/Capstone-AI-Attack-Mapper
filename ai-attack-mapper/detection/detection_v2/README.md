@@ -33,7 +33,9 @@ At the live 0.65 threshold, "Can you ignore the typo in my last message and just
 
 ## Status
 
-Live in production (heuristics-only, judge model pending). Superseded by v3 for the heuristic layer specifically — see that folder's README for the fix and the resulting numbers.
+Live in production (heuristics-only, judge model pending). The recommended upgrade is v4 (this plus input normalization; see `../detection_v4/README.md`). v3 was tried and rejected; see its README for why.
+
+**Stress set** (`../stress_prompts.json`, 70 prompts, threshold 0.65): 2 of 40 normal prompts wrongly flagged, 3 of 30 novel attacks caught. Same novel-attack result as v1: the extra regex patterns raised recall on the 500-prompt set but did not help on differently-worded attacks.
 
 ## Run it
 
