@@ -4,8 +4,21 @@ httpx==0.27.2
 pydantic==2.9.2
 
 # Detection layer (judge model -- see live_attack_path/detection/judge.py).
-# CPU-only torch wheel: Prompt-Guard-86M is only 86M params, doesn't need
-# the GPU, and a CPU wheel avoids ~2GB of unused CUDA libraries in the image.
---extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.5.1
+# GPU-enabled torch wheel (changed 2026-09-29 from a CPU-only wheel): the
+# RTX 5060 has 8GB VRAM, llama3:8b (via Ollama) uses ~4.7-6.6GB of it under
+# load, and Prompt-Guard-86M is tiny (86M params) -- it fits in the
+# remaining headroom alongside llama3:8b rather than needing its own CPU
+# path. cu128 is used (not a hypothetical cu13x index) because an NVIDIA
+# driver reporting a higher max CUDA version (13.3 here) is backward
+# compatible with binaries built against an older CUDA toolkit -- the
+# actual requirement for this GPU (Blackwell, RTX 50-series, compute
+# capability sm_120) is that the *torch build itself* ships sm_120
+# kernels, which requires a recent-enough torch release, not a specific
+# CUDA runtime version. If `torch.cuda.is_available()` is True but real
+# inference throws "no kernel image is available for execution on the
+# device", torch is too old for this GPU -- check for a newer release on
+# https://pytorch.org/get-started/locally/ against this same cu128 (or
+# later) index.
+--extra-index-url https://download.pytorch.org/whl/cu128
+torch>=2.7.0
 transformers==4.46.0
