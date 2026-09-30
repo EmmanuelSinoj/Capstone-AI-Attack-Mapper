@@ -62,7 +62,16 @@ def main():
                         print(f"  ...{n}/{len(todo)}  ({elapsed:.0f}s elapsed, ~{eta:.0f}s remaining)")
         print(f"\nDone in {time.time()-t0:.0f}s.")
 
-    print("\nCalibrating thresholds per word-count band...\n")
+    print("\n" + "=" * 70)
+    print("NOTE: this is a REFERENCE / DIAGNOSTIC analysis only. The length-aware")
+    print("threshold explored below was tested and deliberately NOT shipped --")
+    print("it trades recall and false alarms roughly 1-for-1, with no clear net")
+    print("win (see README, 'Calibration data for item #6'). The actual v5")
+    print("detector (heuristics.py) uses a single flat threshold (0.65) at")
+    print("every prompt length. This script exists only to reproduce the")
+    print("evidence for that decision, not to configure the live detector.")
+    print("=" * 70)
+    print("\nCalibrating thresholds per word-count band (reference only)...\n")
     rows = [json.loads(l) for l in open(OUT_PATH)]
     bins = [(0, 50), (50, 150), (150, 10**9)]
     for lo, hi in bins:
