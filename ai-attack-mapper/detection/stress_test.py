@@ -24,6 +24,10 @@ a threshold from the same data you then report.
 import json, os, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+try:
+    sys.stdout.reconfigure(errors="replace")   # unusual characters print as ? instead of crashing
+except Exception:
+    pass
 _args = [a for a in sys.argv[1:] if not a.startswith("-")]
 version_dir = os.path.basename(os.path.normpath(_args[0])) if len(_args) > 0 else "detection_v4"
 mode = _args[1] if len(_args) > 1 else "0.65"
@@ -49,7 +53,7 @@ else:
         return rx, h.detect_prompt_injection_using_heuristic_on_input(text)
 
 _path = dataset if os.path.exists(dataset) else os.path.join(HERE, dataset)
-data = json.load(open(_path))
+data = json.load(open(_path, encoding="utf-8"))
 
 # Score every prompt once: (label, words, exact-match flag, fuzzy score, text)
 scored = []

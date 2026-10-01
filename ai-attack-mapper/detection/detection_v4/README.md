@@ -31,6 +31,18 @@ A prompt with zero-width characters between every letter fully evades v2's regex
 
 v3 catches more on the benchmark but wrongly flags most everyday prompts on the stress set. v4 keeps only the part of v3 that held up under stress testing. See `../detection_v3/README.md`.
 
+## Superseded by v5
+
+v5 adds decoding for base64/hex/ROT13-obfuscated attacks, detection of
+fake structural markup (`[INST]`, `<system>`), real homoglyph handling
+(Cyrillic/Greek lookalike characters), a broader independently-written
+pattern list, and a bug fix: the `ignore instructions` / `disregard
+instructions` patterns below only ever matched one qualifier word, so
+"ignore all previous instructions" — the single most common attack
+phrase in the field — never actually matched either pattern, in this
+version or any earlier one. See `../detection_v5/README.md` for the full
+comparison, including a confusion matrix on 300 real-world prompts.
+
 ## Known limitations
 
 - Catches 3 of 30 differently-worded attacks on the stress set. Pattern matching cannot recognize an attack by meaning — that's the judge model's job.
