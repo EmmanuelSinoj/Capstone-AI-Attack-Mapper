@@ -1,3 +1,10 @@
+> **UPDATE 2026-10-02 -- live design now matches the detection report.** A prompt is flagged if it matches
+> one of the 38 exact patterns (Emmanuel's v5 set, after normalisation and base64/hex/ROT13 decoding) OR the
+> judge's JAILBREAK log-odds is >= `JUDGE_THRESHOLD` (default 9.1, env-overridable). Only the *prompt* is
+> judged. The fuzzy matcher (`rebuff_heuristics.py`) is removed. Any older paragraph below that mentions
+> fuzzy matching or "flag if the judge's top label is not BENIGN" describes the superseded design.
+> Evidence: `eval_judge/compare_fuzzy_off_output.txt`; live-path check: `eval_judge/verify_live_detection.py`.
+
 # Detection & Alert Logging (Live Attack Path)
 
 **Track:** Testbed and Detection (owner: Aneeq, backup: Shadi)

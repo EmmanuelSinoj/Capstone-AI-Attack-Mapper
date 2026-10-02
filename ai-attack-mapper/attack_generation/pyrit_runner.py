@@ -37,6 +37,8 @@ stale relative to whatever version actually got installed.
 
 import argparse
 import asyncio
+import datetime
+import json
 import pathlib
 
 from pyrit.executor.attack import AttackExecutor, PromptSendingAttack
@@ -90,6 +92,7 @@ async def run(objectives: list[str]) -> None:
         objectives=objectives,
     )
 
+    records = []  # saved to reports/ so detection_report.py can show PyRIT's own outcome next to our detector's verdict
     for attack_result in result:
         response_piece = attack_result.last_response
         if response_piece is not None:
@@ -100,11 +103,21 @@ async def run(objectives: list[str]) -> None:
         print(f"Objective: {attack_result.objective}")
         print(f"Outcome:   {attack_result.outcome.value}")
         print(f"Response:  {response_text}")
+        records.append({"objective": attack_result.objective, "outcome": attack_result.outcome.value, "response": response_text})
 
     if result.has_incomplete:
         print(f"\n{len(result.incomplete_objectives)} objective(s) did not complete:")
         for objective, exc in result.incomplete_objectives:
             print(f"  - {objective!r}: {exc}")
+
+    out_dir = HERE / "reports"
+    out_dir.mkdir(exist_ok=True)
+    stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    out_path = out_dir / f"pyrit_run_{stamp}.json"
+    out_path.write_text(json.dumps({"started": stamp, "results": records,
+                                    "incomplete": [str(o) for o, _ in result.incomplete_objectives] if result.has_incomplete else []},
+                                   indent=2), encoding="utf-8")
+    print(f"\nSaved PyRIT results to {out_path}")
 
     print("\nDone. Every interaction above was independently logged by the")
     print("testbed's own detection layer -- check alert_store/alerts.db, not")
