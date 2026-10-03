@@ -15,12 +15,19 @@ from . import heuristics, judge
 
 logger = logging.getLogger("detection.logger")
 
+# Taxonomy code written to alerts.category when a detector fires. The Mapper's five-category taxonomy uses
+# letter codes A-E; live prompt injection / jailbreaking is "B". The alert store rejects anything else on new
+# databases (Emmanuel's PR #5), and this runs as a background task, so a wrong value would silently stop alerts
+# being logged. Unflagged interactions keep category NULL.
+CATEGORY_LIVE_PROMPT_INJECTION = "B"
+
 
 def log_interaction(
     prompt: str,
     response: str,
     probe_id: Optional[str],
     system_prompt_version: int,
+    system_prompt: Optional[str] = None,
 ) -> dict:
     """Run detection on one interaction and write it to the Alert Store.
 
@@ -29,8 +36,16 @@ def log_interaction(
     in Evaluation), but `category` is only set when a detector fires --
     that's the signal the classification engine and Auto-Hardening act
     on. Returns the verdict dict, mainly so app.py can log it too.
+
+    `system_prompt` (added 2026-09-26, optional/backward-compatible) is
+    the actual current system prompt text, passed straight through to
+    heuristics.check_interaction so it can confirm a genuine verbatim
+    leak in the response rather than relying on regex phrasing alone --
+    see heuristics.py's module docstring for the full rationale.
     """
-    h_flagged, h_matches, h_confidence = heuristics.check_interaction(prompt, response)
+    h_flagged, h_matches, h_confidence = heuristics.check_interaction(
+        prompt, response, system_prompt
+    )
     j_flagged, j_detail, j_confidence = judge.check_interaction(prompt, response)
 
     flagged = h_flagged or j_flagged
@@ -55,7 +70,7 @@ def log_interaction(
             output=response,
             detector=detector,
             confidence=confidence,
-            category="prompt_injection" if flagged else None,
+            category=CATEGORY_LIVE_PROMPT_INJECTION if flagged else None,
             probe_id=probe_id,
             system_prompt_version=system_prompt_version,
         )

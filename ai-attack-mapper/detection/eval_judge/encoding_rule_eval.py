@@ -4,7 +4,17 @@ Sets: encoding_holdout_80.json (independent, frozen before the rule was written)
 (labeled_500 normal + support_benign_210 + JailbreakHub-train normal), attack recall on labeled_500/stress/JailbreakHub-train,
 and today's Garak encoding traffic (IN-SAMPLE: the rule was written after seeing Garak's wording)."""
 import json, os, sys, glob, sqlite3
-HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
+HERE = os.path.dirname(os.path.abspath(__file__))
+def find_reports():
+    """Garak reports folder: ai-attack-mapper/attack_generation/reports (repo layout) or live_attack_path/attack_generation/reports (working copy)."""
+    d = HERE
+    for _ in range(6):
+        for rel in (("attack_generation", "reports"), ("live_attack_path", "attack_generation", "reports")):
+            c = os.path.join(d, *rel)
+            if os.path.isdir(c): return c
+        d = os.path.dirname(d)
+    return ""
+REPORTS = find_reports()
 sys.path.insert(0, os.path.abspath(os.path.join(HERE, "..", "..")))
 from detection import heuristics as h
 def old(t):
@@ -26,11 +36,11 @@ sb = J("support_benign_210.json"); sb = sb if isinstance(sb, list) else sb.get("
 tr = J("jailbreakhub_1000_train.json"); row("JailbreakHub train (700)", [(x.get("text") or x.get("prompt")) for x in tr], [x["label"] for x in tr])
 # Garak today (in-sample)
 G, HIT = {}, set()
-for f in glob.glob(os.path.join(ROOT, "live_attack_path", "attack_generation", "reports", "garak_run_20261002*.report.jsonl")):
+for f in glob.glob(os.path.join(REPORTS, "garak_run_20261002*.report.jsonl")):
     for l in open(f, encoding="utf-8"):
         if '"entry_type": "attempt"' in l[:40]:
             d = json.loads(l); G.setdefault(d["prompt"]["turns"][-1]["content"]["text"], d["probe_classname"])
-for f in glob.glob(os.path.join(ROOT, "live_attack_path", "attack_generation", "reports", "garak_run_20261002*.hitlog.jsonl")):
+for f in glob.glob(os.path.join(REPORTS, "garak_run_20261002*.hitlog.jsonl")):
     for l in open(f, encoding="utf-8"): HIT.add(json.loads(l)["prompt"]["turns"][-1]["content"]["text"])
 enc = [t for t, p in G.items() if p.startswith("encoding")]; worked = [t for t in enc if t in HIT]
 print(f"\nGARAK encoding (IN-SAMPLE): distinct prompts {len(enc)}; worked {len(worked)}; patterns-flagged old {sum(map(old,enc))} -> new {sum(map(new,enc))}; "

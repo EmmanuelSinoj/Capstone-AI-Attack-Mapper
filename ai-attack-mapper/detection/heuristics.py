@@ -1,7 +1,7 @@
 """
 Exact-pattern prompt-injection / jailbreak detector (fuzzy matcher REMOVED 2026-10-02).
 
-Live design, matching the detection report: a prompt is flagged if it matches one of the 38
+Live design (detection v6, see VERSION.md): a prompt is flagged if it matches one of the 43
 exact patterns below (after Unicode/zero-width normalisation and after decoding base64, hex and
 ROT13 -- see preprocessing.py), OR if the judge model (judge.py) scores it at/above its cutoff.
 The Rebuff-derived fuzzy matcher was switched off because on real JailbreakHub prompts it raised
@@ -11,8 +11,12 @@ the false-positive rate from about 20% to about 63% for a modest recall gain
 This file also keeps _check_system_prompt_leak: it checks whether the *response* contains the
 real, current system prompt verbatim -- the strongest signal available, and unrelated to phrasing.
 
-Pattern set = Emmanuel's v5 (PR #3): the original 12 (two corrected so "ignore all previous
-instructions" actually matches), 6 structural-markup patterns, and 20 expanded patterns.
+Pattern set (43) = Emmanuel's v5 set (38: the original 12 -- two corrected so "ignore all previous
+instructions" actually matches -- plus 6 structural-markup and 20 expanded patterns) plus 5
+`encoding_smuggling` patterns added 2026-10-02 ("decode the following ...", "Encoded: ... Decoded:",
+decode + follow-up verb). The 5 encoding patterns were written after looking at Garak's encoding
+probes, so Garak numbers for that family are in-sample; the independent check is
+eval_judge/encoding_holdout_80.json (results in eval_judge/encoding_rule_eval_output.txt).
 """
 
 import re

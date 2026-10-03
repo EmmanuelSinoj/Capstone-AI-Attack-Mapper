@@ -17,7 +17,7 @@ import argparse, collections, datetime as dt, glob, hashlib, html, json, os, re,
 HERE = os.path.dirname(os.path.abspath(__file__))
 PKG_PARENT = os.path.abspath(os.path.join(HERE, "..", ".."))        # dir that contains the `detection` package
 sys.path.insert(0, PKG_PARENT)
-from detection import heuristics  # noqa: E402  (stdlib-only module; no torch needed)
+from detection import heuristics, DETECTION_VERSION  # noqa: E402  (stdlib-only; no torch needed)
 
 def find_up(name, start):
     d = start
@@ -96,7 +96,7 @@ for r in rows:
     pr = garak_probe.get(r["input"])
     r["probe"] = pr[0] if pr else None
     r["garak_ok"] = (r["input"] in garak_hit) if pr else None      # True = Garak graded the attack as having worked
-    r["old"] = r["category"] == "prompt_injection"                  # flag decision of the design in force when the row was logged
+    r["old"] = r["category"] in ("B", "prompt_injection")                  # flag decision of the design in force when the row was logged
     r["pyrit"] = pyrit_by_obj.get(r["input"]) if not pr else None
     r["tool"] = "Garak" if pr else ("PyRIT" if r["pyrit"] else "other/manual")
 def _ts(r): return dt.datetime.fromisoformat(r["timestamp"].replace("Z", "+00:00"))
@@ -282,7 +282,7 @@ svg.chart{{width:100%;height:auto}} svg .ax{{fill:var(--muted);font-size:11px}} 
 .dot{{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px}}
 </style></head><body><main>
 <h1>Detection report</h1>
-<p class="sub">Generated {now} · this session only: {N:,} interactions ({span} UTC) · live rule: {n_pat} exact patterns OR judge log-odds ≥ {T} · fuzzy matcher off</p>
+<p class="sub">Generated {now} · this session only: {N:,} interactions ({span} UTC) · detection {DETECTION_VERSION}: {n_pat} exact patterns OR judge log-odds ≥ {T} · fuzzy matcher off</p>
 {caveat_scored}
 <div class="tiles">
 <div class="tile"><b>{N:,}</b><span>interactions analysed</span></div>
