@@ -8,9 +8,11 @@ Status: plan only, written 2026-10-04 for Mon Oct 5. Nothing below is built yet.
 - Garak talks to `/chat` through its REST generator, which sends only the prompt. Garak's own files hold the probe name and the success result: `*.report.jsonl` (every attempt, with `probe_classname`) and `*.hitlog.jsonl` (the attempts that worked).
 - PyRIT (`pyrit_runner.py`) has no scorer, so its outcomes are "undetermined". It now saves `reports/pyrit_run_<UTC>.json` (objective, outcome, response).
 
-## run_id
-- Format `<tool>_<YYYYMMDD>_<DETECTION_VERSION>`, e.g. `garak_20261006_v6-1`, `pyrit_20261006_v6-1`, `benign_20261008_v6-1`. Every run also gets a same-day counter starting at 1: `garak_20261006_v6-1`, then `-2`, `-3` for later runs that day (decided 2026-10-04). The version comes from `detection.DETECTION_VERSION` so it cannot drift.
-- Set once at the start of each run by the runner and sent with every request: `/chat` gets an optional `run_id` field and `logger.py` writes it. For Garak the runner writes it into the REST generator's request body template; for PyRIT it is part of the target request.
+## run_id and rounds
+- A **round** is one test session: the attack run(s) plus the benign run that goes with them. The round token is `<YYYYMMDD>_<DETECTION_VERSION>-<n>`, e.g. `20261006_v6-1`; `n` counts rounds that day (`-1`, `-2`, `-3`; decided 2026-10-04).
+- `run_id` = `<tool>_<round token>`: `garak_20261006_v6-1`, `pyrit_20261006_v6-1`, `benign_20261006_v6-1`. All runs in a round share the same token, so the report pairs them by the token after the first underscore.
+- **Rule (decided 2026-10-04): an attack run must be accompanied by a benign run in the same round.** The campaign runner starts both under one round token; the report marks a round "incomplete" if it has attack rows but no benign rows (no false-alarm number) and shows a warning.
+- Set once per run by the runner and sent with every request: `/chat` gets an optional `run_id` field and `logger.py` writes it. For Garak the runner writes it into the REST generator's request body template; for PyRIT and the benign replay it is part of the request.
 
 ## probe_id
 - **Garak:** the probe class name, e.g. `promptinject.HijackHateHumans`, `dan.Dan_11_0`, `encoding.InjectNato`. Garak does not send it live, so a script `annotate_run.py <run_id>` fills it after the run by matching each row's prompt text (exactly) to the attempts in the run's `report.jsonl`. Rows with no match are listed, not guessed.
