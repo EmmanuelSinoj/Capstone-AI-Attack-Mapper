@@ -14,7 +14,7 @@ A prompt is flagged if it matches one of the **43 exact patterns** (after normal
 - `preprocessing.py`: Unicode and zero-width clean-up, homoglyph canonicalisation, base64/hex/ROT13 decode candidates.
 - `judge.py`: Prompt-Guard-86M (not Llama Guard 3 8B: VRAM budget on the RTX 5060; it runs on the GPU, `device=0`). `score_prompt()` returns the JAILBREAK log-odds; `check_interaction()` applies `JUDGE_THRESHOLD` (default 9.1, env-overridable). Needs an approved `HF_TOKEN` (the model is gated). If the model cannot load or inference fails, the interaction is logged as `judge:unavailable` and detection falls back to patterns only; check `docker logs aam-testbed`. Requests that arrive while the model is still loading wait for it instead of being logged as unavailable.
 - `logger.py`: combines both verdicts and writes the alert via `alert_store/db.py`. `testbed/app.py` calls it as a background task after every `/chat` response, so detection never delays the response (NFR1).
-- `reporting/`: `detection_report.py` builds an HTML report of the latest attack session (Garak and PyRIT aware); `rescore_judge.py` scores older prompts with the live judge.
+- `reporting/`: `detection_report.py` builds an HTML report of the latest attack session (Garak and PyRIT aware); `--round <token>` reports on one round instead: successful Garak/PyRIT attacks flagged by v6, benign-run flag rate with a confidence interval, and warnings for an incomplete round; `rescore_judge.py` scores older prompts with the live judge.
 - `eval_judge/`: the evaluation scripts, saved scores and results (see its `README.md`).
 - `VERSION.md`: what v6 contains and why.
 

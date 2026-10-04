@@ -42,3 +42,6 @@ Needs a restart of the testbed container before the first live run, and a short 
 
 ### "Worked" has three definitions in play; pick one before the numbers are quoted
 For the 2 Oct session: (a) the report's current method counts a row as worked if its prompt appears in ANY Garak hit log (all sessions): 1,058 rows; (b) prompt appears in THIS run's hit log: 852 rows; (c) this run's hit log by (prompt, output) pair, i.e. that exact generation: 612 rows. `annotate_run.py` writes (c), the strictest. (a) overstates when the same prompt succeeded in another session. Recall = flagged / worked, so the choice moves the headline number.
+
+## Status 2026-10-04 night (item 11 built)
+Round plumbing tested live (round 20261004_v6-3: 768 Garak rows annotated, 231 graded successful; PyRIT scored 3/4 by `pyrit_scorer.py`; benign 20 rows). `detection_report.py --round <token>` now adds section 0: per tool, successful attacks flagged by v6 (prompt-only rule) with 95% Wilson CI, benign flag rate with CI, warnings for missing runs, ungraded rows, small benign sample, and the weak PyRIT rule. In round mode "worked" = stored `attack_succeeded`, so Garak counts match the round summary (231, not the all-sessions hit-log count).
