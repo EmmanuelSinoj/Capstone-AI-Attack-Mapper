@@ -47,17 +47,17 @@ def main() -> int:
         for f in glob.glob(os.path.join(a.reports_dir, "*.runinfo.json")):
             j = json.load(open(f, encoding="utf-8"))
             if j.get("run_id") == run_id: info = j
-        if not info: print(f"ERROR: no runinfo for {run_id} in {a.reports_dir} (did garak_runner.py finish starting?)"); return 1
-        prefix = os.path.join(a.reports_dir, info["report_prefix"].replace("\\","/").split("/")[-1])
+        prefix = os.path.join(a.reports_dir, info["report_prefix"].replace("\\","/").split("/")[-1]) if info else None
+        if not info: print(f"NOTE: no Garak run for round {a.round} (no runinfo for {run_id}); only PyRIT / replay rows will be annotated.")
     probe, attempts = {}, {}
-    for l in open(prefix + ".report.jsonl", encoding="utf-8"):
+    for l in (open(prefix + ".report.jsonl", encoding="utf-8") if prefix else []):
         try: r = json.loads(l)
         except ValueError: continue
         if r.get("entry_type") == "attempt":
             t = ptext(r.get("prompt"))
             if t is not None: probe[t] = r.get("probe_classname")
     hits = set()
-    if os.path.exists(prefix + ".hitlog.jsonl"):
+    if prefix and os.path.exists(prefix + ".hitlog.jsonl"):
         for l in open(prefix + ".hitlog.jsonl", encoding="utf-8"):
             try: r = json.loads(l)
             except ValueError: continue
@@ -97,10 +97,25 @@ def main() -> int:
             if pid not in obj: print(f"  PyRIT row {i}: no objective for probe_id {pid!r} (left alone)"); continue
             ok, kind = pyrit_scorer.grade(obj[pid], out, sp); won += ok; kinds[kind] += 1; pupd.append((ok, i))
         print(f"PyRIT {prun}: {len(prow)} rows, graded {len(pupd)}, successful {won}  (rules: {dict(kinds)}; no_refusal is a weak heuristic)")
+    # Replay rows (replay_runner.py): grades live in reports/<run_id>.results.jsonl; match alert rows by (prompt, reply)
+    rupd = []
+    if a.round and not a.legacy_day:
+        for rid in [r[0] for r in c.execute("SELECT DISTINCT run_id FROM alerts WHERE run_id LIKE ?", (f"replayv%_{a.round}",)).fetchall()]:
+            rf = os.path.join(a.reports_dir, rid + ".results.jsonl")
+            if not os.path.exists(rf): print(f"  {rid}: no results file {rf} (left alone)"); continue
+            grades = {}
+            for l in open(rf, encoding="utf-8"):
+                try: j = json.loads(l)
+                except ValueError: continue
+                grades[(j["prompt"], j["output"])] = int(j["success"])
+            rrows = c.execute("SELECT id, input, output FROM alerts WHERE run_id=?", (rid,)).fetchall()
+            m = [(grades[(inp, out)], i) for i, inp, out in rrows if (inp, out) in grades]
+            won = sum(x for x, _ in m); rupd += m
+            print(f"Replay {rid}: {len(rrows)} rows, matched {len(m)}, successful {won}" + ("" if len(m) == len(rrows) else f"  ({len(rrows)-len(m)} unmatched, left alone)"))
     if a.dry_run or a.legacy_day: print("DRY RUN: nothing written."); return 0
     c.executemany("UPDATE alerts SET probe_id=?, attack_succeeded=? WHERE id=?", upd)
-    c.executemany("UPDATE alerts SET attack_succeeded=? WHERE id=?", pupd); c.commit()
-    print(f"Updated {len(upd)} Garak rows and {len(pupd)} PyRIT rows."); return 0
+    c.executemany("UPDATE alerts SET attack_succeeded=? WHERE id=?", pupd + rupd); c.commit()
+    print(f"Updated {len(upd)} Garak rows, {len(pupd)} PyRIT rows and {len(rupd)} replay rows."); return 0
 
 
 if __name__ == "__main__":
