@@ -47,7 +47,7 @@ def main() -> int:
             j = json.load(open(f, encoding="utf-8"))
             if j.get("run_id") == run_id: info = j
         if not info: print(f"ERROR: no runinfo for {run_id} in {a.reports_dir} (did garak_runner.py finish starting?)"); return 1
-        prefix = os.path.join(a.reports_dir, os.path.basename(info["report_prefix"]))
+        prefix = os.path.join(a.reports_dir, info["report_prefix"].replace("\\","/").split("/")[-1])
     probe, attempts = {}, {}
     for l in open(prefix + ".report.jsonl", encoding="utf-8"):
         try: r = json.loads(l)
