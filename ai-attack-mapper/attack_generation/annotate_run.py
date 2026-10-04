@@ -32,6 +32,7 @@ def main() -> int:
     ap.add_argument("round", nargs="?", help="Round token, e.g. 20261006_v6-1 (annotates run garak_<round>).")
     ap.add_argument("--db", default="/app/alert_store/alerts.db")
     ap.add_argument("--reports-dir", default="/app/attack_generation/reports")
+    ap.add_argument("--system-prompt", default="/app/system_prompt.txt")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--legacy-day", default=None, help="Select rows by timestamp date (YYYY-MM-DD) instead of run_id; needs --report-prefix.")
     ap.add_argument("--report-prefix", default=None, help="Garak report prefix path (no extension); default from the run's .runinfo.json.")
@@ -78,9 +79,28 @@ def main() -> int:
     print(f"Rows selected: {len(rows)}  matched: {stats['matched']}  unmatched (left alone): {stats['unmatched']}  graded successful: {stats['succeeded']}")
     for f, (n, s) in sorted(fam.items()): print(f"  {f:<14} {n:>5} rows  {s:>4} successful")
     if unmatched: print("  unmatched alert ids (first 20):", unmatched[:20])
+    # PyRIT rows of the same round: probe_id was set live; attack_succeeded comes from pyrit_scorer.py
+    pupd = []
+    if a.round and not a.legacy_day:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import pyrit_scorer
+        try: sp = pyrit_scorer.load_system_prompt(a.system_prompt)
+        except OSError: sp = ""
+        prun = f"pyrit_{a.round}"; obj = {}
+        for f in glob.glob(os.path.join(a.reports_dir, "pyrit_run_*.json")):
+            j = json.load(open(f, encoding="utf-8"))
+            if j.get("run_id") == prun:
+                for r in j.get("results", []): obj[r["probe_id"]] = r["objective"]
+        prow = c.execute("SELECT id, probe_id, output FROM alerts WHERE run_id=?", (prun,)).fetchall()
+        kinds = collections.Counter(); won = 0
+        for i, pid, out in prow:
+            if pid not in obj: print(f"  PyRIT row {i}: no objective for probe_id {pid!r} (left alone)"); continue
+            ok, kind = pyrit_scorer.grade(obj[pid], out, sp); won += ok; kinds[kind] += 1; pupd.append((ok, i))
+        print(f"PyRIT {prun}: {len(prow)} rows, graded {len(pupd)}, successful {won}  (rules: {dict(kinds)}; no_refusal is a weak heuristic)")
     if a.dry_run or a.legacy_day: print("DRY RUN: nothing written."); return 0
-    c.executemany("UPDATE alerts SET probe_id=?, attack_succeeded=? WHERE id=?", upd); c.commit()
-    print(f"Updated {len(upd)} rows."); return 0
+    c.executemany("UPDATE alerts SET probe_id=?, attack_succeeded=? WHERE id=?", upd)
+    c.executemany("UPDATE alerts SET attack_succeeded=? WHERE id=?", pupd); c.commit()
+    print(f"Updated {len(upd)} Garak rows and {len(pupd)} PyRIT rows."); return 0
 
 
 if __name__ == "__main__":
