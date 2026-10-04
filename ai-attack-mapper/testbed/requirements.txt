@@ -19,6 +19,9 @@ pydantic==2.9.2
 # device", torch is too old for this GPU -- check for a newer release on
 # https://pytorch.org/get-started/locally/ against this same cu128 (or
 # later) index.
---extra-index-url https://download.pytorch.org/whl/cu128
-torch>=2.7.0
+--extra-index-url https://download.pytorch.org/whl/cu130
+# Pinned 2026-10-04 to the build running in the aam-testbed container (torch.__version__ = 2.14.1+cu130).
+# The index above was cu128 until now; the running image reports +cu130, so it was changed to match.
+# A fresh rebuild with this pin has not been tested yet.
+torch==2.14.1
 transformers==4.46.0
