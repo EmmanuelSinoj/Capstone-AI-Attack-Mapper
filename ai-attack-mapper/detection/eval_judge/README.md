@@ -24,10 +24,11 @@ Saved scores (`judge_*_scores*.jsonl`, `exact_short_scores.jsonl`) are what the 
 Inside the testbed container (needs the GPU, the model and `HF_TOKEN`), e.g. `docker compose exec testbed python3 /app/detection/eval_judge/<script>`:
 `judge_calibrate.py`, `judge_score_short.py`, `judge_score_support.py`, `verify_live_detection.py` (expects PASS), `../reporting/rescore_judge.py`, and `judge_test_validate.py` (already run once on the locked 300; do not re-run it to select anything).
 
-On the host (plain Python, read the saved scores): `judge_kfold_validate.py`, `combined_train_cv.py`, `exact_score_short.py`, `short_analysis.py`, `short_full_report.py`, `support_analysis.py`, `compare_fuzzy_off.py`, `encoding_rule_eval.py`, `build_support_benign.py`, `build_label_audit.py`.
+On the host (plain Python, read the saved scores): `judge_kfold_validate.py`, `combined_train_cv.py`, `exact_score_short.py`, `short_analysis.py`, `short_full_report.py`, `support_analysis.py`, `compare_fuzzy_off.py` (slow: runs the v5 fuzzy matcher, a few minutes), `locked_300_combined.py`, `encoding_rule_eval.py`, `build_support_benign.py`, `build_label_audit.py`.
 
 ## Results kept in the repo
 
 - `chosen_thresholds.json`: the earlier "at most 10% normal flagged" rule (judge alone, 9.5). v6 uses 9.1; see `../VERSION.md`.
 - `compare_fuzzy_off_output.txt`: v5 versus v6 on the training set, with the fuzzy matcher off.
+- `locked_300_combined_output.txt`: patterns OR judge on the locked 300 from saved scores (100/150 caught, 41/150 flagged at 9.1). Fixed thresholds, nothing tuned on it.
 - `encoding_rule_eval_output.txt`: effect of the 5 encoding patterns (holdout is independent, Garak is in-sample).

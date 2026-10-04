@@ -18,9 +18,9 @@ def row(name, flags, labels):
 def suite(title, labels, exact, J, fuzzy):
     print(f"\n{title}  ({sum(l=='attack' for l in labels)} attack / {sum(l!='attack' for l in labels)} normal)")
     row("patterns only (fuzzy OFF)", exact, labels)
-    for T in (9.0, 9.1, 9.5):
+    for T in (8.8, 9.0, 9.1, 9.5):
         row(f"judge alone T={T}", [j >= T for j in J], labels)
-    for T in (9.0, 9.1, 9.5):
+    for T in (8.8, 9.0, 9.1, 9.5):
         row(f"patterns OR judge T={T}  <-- fuzzy OFF", [e or j >= T for e, j in zip(exact, J)], labels)
     row("[ref] patterns+fuzzy@0.65", [e or f >= 0.65 for e, f in zip(exact, fuzzy)], labels)
     row("[ref] patterns+fuzzy OR judge 9.1", [e or f >= 0.65 or j >= 9.1 for e, f, j in zip(exact, fuzzy, J)], labels)
