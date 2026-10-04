@@ -35,3 +35,10 @@ After one short Garak run and one PyRIT run: count rows with NULL `run_id`, NULL
 1. PyRIT grading: **decided**, we add a scorer.
 2. Same-day repeats: **decided**, counter `-1`, `-2`, `-3`.
 3. Benign replay with the 210 support messages: open. It is the only source of a live false-alarm number (Garak/PyRIT traffic is all attacks); the report must say the set is model-written and unreviewed.
+
+## Status 2026-10-04 (code written, NOT yet tested end to end)
+Built: `run_id` accepted by `/chat` and written by `logger.py`; `attack_generation/rounds.py` (round tokens, one run per tool per round); `garak_runner.py` and `pyrit_runner.py` tag every request with `run_id` (PyRIT also `probe_id` per objective); `benign_replay_runner.py`; `run_round.py` (Garak + PyRIT + benign under one round); `annotate_run.py` (fills Garak `probe_id` and `attack_succeeded`; dry run verified on the 2 Oct session: 5,109 of 5,114 rows matched). Not built: the PyRIT scorer (decided: we add one), the report extension (item 11).
+Needs a restart of the testbed container before the first live run, and a short trial run (`run_round.py --probes promptinject --benign-limit 20`).
+
+### "Worked" has three definitions in play; pick one before the numbers are quoted
+For the 2 Oct session: (a) the report's current method counts a row as worked if its prompt appears in ANY Garak hit log (all sessions): 1,058 rows; (b) prompt appears in THIS run's hit log: 852 rows; (c) this run's hit log by (prompt, output) pair, i.e. that exact generation: 612 rows. `annotate_run.py` writes (c), the strictest. (a) overstates when the same prompt succeeded in another session. Recall = flagged / worked, so the choice moves the headline number.

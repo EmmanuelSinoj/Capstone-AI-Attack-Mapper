@@ -28,6 +28,7 @@ def log_interaction(
     probe_id: Optional[str],
     system_prompt_version: int,
     system_prompt: Optional[str] = None,
+    run_id: Optional[str] = None,
 ) -> dict:
     """Run detection on one interaction and write it to the Alert Store.
 
@@ -72,6 +73,7 @@ def log_interaction(
             confidence=confidence,
             category=CATEGORY_LIVE_PROMPT_INJECTION if flagged else None,
             probe_id=probe_id,
+            run_id=run_id,
             system_prompt_version=system_prompt_version,
         )
     finally:

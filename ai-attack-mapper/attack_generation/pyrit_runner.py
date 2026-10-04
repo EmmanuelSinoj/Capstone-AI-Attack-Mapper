@@ -41,6 +41,7 @@ import datetime
 import json
 import pathlib
 
+import rounds
 from pyrit.executor.attack import AttackExecutor, PromptSendingAttack
 from pyrit.prompt_target import HTTPTarget, get_http_target_json_response_callback_function
 from pyrit.setup import IN_MEMORY, initialize_pyrit_async
@@ -49,10 +50,11 @@ HERE = pathlib.Path(__file__).parent
 
 # {PROMPT} is substituted by PyRIT with each objective (after any
 # converters run) before the request is sent.
-RAW_HTTP_REQUEST = """POST http://localhost:8000/chat HTTP/1.1
+# __PROBE_ID__ / __RUN_ID__ are filled in per objective by run() below.
+RAW_HTTP_REQUEST_TEMPLATE = """POST http://localhost:8000/chat HTTP/1.1
 Content-Type: application/json
 
-{"prompt": "{PROMPT}"}
+{"prompt": "{PROMPT}", "probe_id": "__PROBE_ID__", "run_id": "__RUN_ID__"}
 """
 
 # A starting objective set scoped to this project's live-attack category
@@ -74,26 +76,32 @@ def load_objectives(objectives_file: str | None) -> list[str]:
     return lines
 
 
-async def run(objectives: list[str]) -> None:
+async def run(objectives: list[str], run_id: str) -> None:
     await initialize_pyrit_async(memory_db_type=IN_MEMORY)
 
-    target = HTTPTarget(
-        http_request=RAW_HTTP_REQUEST,
-        callback_function=get_http_target_json_response_callback_function(key="response"),
-        timeout=180.0,  # matches the testbed's own cold-start-tolerant timeout
-    )
+    # One target (request template) per objective so each request carries its own probe_id plus the run_id; the
+    # testbed logs both on the alert row (see detection/PLAN_run_probe_ids.md). Concurrency stays at 2 (shared GPU).
+    sem = asyncio.Semaphore(2)
 
-    attack = PromptSendingAttack(objective_target=target)
-    executor = AttackExecutor(max_concurrency=2)  # modest: shared GPU, don't starve Ollama
+    async def one(n: int, objective: str):
+        probe_id = f"pyrit.prompt_sending.obj{n:02d}"
+        target = HTTPTarget(
+            http_request=RAW_HTTP_REQUEST_TEMPLATE.replace("__PROBE_ID__", probe_id).replace("__RUN_ID__", run_id),
+            callback_function=get_http_target_json_response_callback_function(key="response"),
+            timeout=180.0,  # matches the testbed's own cold-start-tolerant timeout
+        )
+        attack = PromptSendingAttack(objective_target=target)
+        async with sem:
+            res = await AttackExecutor(max_concurrency=1).execute_attack_async(attack=attack, objectives=[objective])
+        return probe_id, res
 
-    print(f"Running {len(objectives)} objective(s) against the testbed...")
-    result = await executor.execute_attack_async(
-        attack=attack,
-        objectives=objectives,
-    )
+    print(f"Running {len(objectives)} objective(s) against the testbed as {run_id}...")
+    parts = await asyncio.gather(*(one(n, o) for n, o in enumerate(objectives, 1)))
+    all_results = [(pid, r) for pid, res in parts for r in res]
+    incomplete = [(o, e) for _, res in parts if res.has_incomplete for o, e in res.incomplete_objectives]
 
     records = []  # saved to reports/ so detection_report.py can show PyRIT's own outcome next to our detector's verdict
-    for attack_result in result:
+    for probe_id, attack_result in all_results:
         response_piece = attack_result.last_response
         if response_piece is not None:
             response_text = response_piece.converted_value or response_piece.original_value
@@ -103,19 +111,19 @@ async def run(objectives: list[str]) -> None:
         print(f"Objective: {attack_result.objective}")
         print(f"Outcome:   {attack_result.outcome.value}")
         print(f"Response:  {response_text}")
-        records.append({"objective": attack_result.objective, "outcome": attack_result.outcome.value, "response": response_text})
+        records.append({"probe_id": probe_id, "objective": attack_result.objective, "outcome": attack_result.outcome.value, "response": response_text})
 
-    if result.has_incomplete:
-        print(f"\n{len(result.incomplete_objectives)} objective(s) did not complete:")
-        for objective, exc in result.incomplete_objectives:
+    if incomplete:
+        print(f"\n{len(incomplete)} objective(s) did not complete:")
+        for objective, exc in incomplete:
             print(f"  - {objective!r}: {exc}")
 
     out_dir = HERE / "reports"
     out_dir.mkdir(exist_ok=True)
     stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     out_path = out_dir / f"pyrit_run_{stamp}.json"
-    out_path.write_text(json.dumps({"started": stamp, "results": records,
-                                    "incomplete": [str(o) for o, _ in result.incomplete_objectives] if result.has_incomplete else []},
+    out_path.write_text(json.dumps({"started": stamp, "run_id": run_id, "results": records,
+                                    "incomplete": [str(o) for o, _ in incomplete]},
                                    indent=2), encoding="utf-8")
     print(f"\nSaved PyRIT results to {out_path}")
 
@@ -131,11 +139,16 @@ def main() -> int:
         default=None,
         help="Path to a text file, one attack objective per line. Defaults to a small built-in set.",
     )
+    parser.add_argument("--round", default=None, help="Round token (e.g. 20261006_v6-1). Default: today's current round.")
+    parser.add_argument("--new-round", action="store_true", help="Start a new round.")
     args = parser.parse_args()
 
+    round_token = args.round or (rounds.new_round() if args.new_round else rounds.current_round())
+    run_id = rounds.claim_run_id("pyrit", round_token)
+    print(f"Round {round_token}  run_id {run_id}")
     objectives = load_objectives(args.objectives_file)
     print("Make sure the stack is up first: docker compose ps  (ollama + testbed healthy)")
-    asyncio.run(run(objectives))
+    asyncio.run(run(objectives, run_id))
     return 0
 
 
