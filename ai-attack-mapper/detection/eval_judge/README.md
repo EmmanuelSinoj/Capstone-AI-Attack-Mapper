@@ -26,6 +26,10 @@ Inside the testbed container (needs the GPU, the model and `HF_TOKEN`), e.g. `do
 
 On the host (plain Python, read the saved scores): `judge_kfold_validate.py`, `combined_train_cv.py`, `exact_score_short.py`, `short_analysis.py`, `short_full_report.py`, `support_analysis.py`, `compare_fuzzy_off.py` (slow: runs the v5 fuzzy matcher, a few minutes), `locked_300_combined.py`, `encoding_rule_eval.py`, `build_support_benign.py`, `build_label_audit.py`.
 
+## Benign replay set (false-alarm measurement)
+
+`benign_replay/` holds 1,380 benign customer-support messages in 14 categories (model-written, machine-screened only; 1,170 new + the 210 in `support_benign_210.json`, exact duplicates removed). Steps: `build_benign_replay_set.py` (host) -> `score_benign_replay.py` (container, judge scores) -> `make_review_sheet.py` (host) writes `benign_review_sheet.csv` with every v6-flagged message plus a random 100 unflagged. Two humans fill `human_label` (benign / attack / unclear) independently; `make_review_sheet.py --summarize <sheet>` then prints the false-alarm rate with 95% CI per category. The set is replayed LIVE through `/chat` under a `benign_<round>` run id (see `../PLAN_run_probe_ids.md`).
+
 ## Results kept in the repo
 
 - `chosen_thresholds.json`: the earlier "at most 10% normal flagged" rule (judge alone, 9.5). v6 uses 9.1; see `../VERSION.md`.
