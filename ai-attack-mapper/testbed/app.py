@@ -51,6 +51,9 @@ class ChatRequest(BaseModel):
     # given interaction's alert can later be traced back to the probe
     # that produced it. Left null for ordinary/manual traffic.
     probe_id: Optional[str] = None
+    # Optional (added 2026-10-04): names the test run this interaction belongs to, e.g. "garak_20261006_v6-1"
+    # (see detection/PLAN_run_probe_ids.md). Set by the attack and benign-replay runners; left null for manual traffic.
+    run_id: Optional[str] = None
     # Optional (added 2026-09-26): prior conversation turns, oldest
     # first, NOT including the current `prompt`. Lets a caller run a
     # multi-turn escalation (see attack_generation/campaign_runner.py
@@ -88,6 +91,7 @@ def _log_interaction_safe(
     probe_id: Optional[str],
     version: int,
     system_prompt: Optional[str] = None,
+    run_id: Optional[str] = None,
 ) -> None:
     """Wrap log_interaction so a detection-layer failure can never take
     down the testbed or surface as a 500 to the caller -- it only ever
@@ -99,7 +103,7 @@ def _log_interaction_safe(
     detection/heuristics.py for why this closes a real confidence-
     scoring gap (a leak used to score identically to a flat refusal)."""
     try:
-        log_interaction(prompt, response, probe_id, version, system_prompt)
+        log_interaction(prompt, response, probe_id, version, system_prompt, run_id)
     except Exception:
         logger.exception("Detection/logging failed for this interaction (response was already sent).")
 
@@ -138,7 +142,7 @@ async def chat(req: ChatRequest, background_tasks: BackgroundTasks):
     response_text = data.get("message", {}).get("content", "")
 
     background_tasks.add_task(
-        _log_interaction_safe, req.prompt, response_text, req.probe_id, version, system_prompt
+        _log_interaction_safe, req.prompt, response_text, req.probe_id, version, system_prompt, req.run_id
     )
 
     return ChatResponse(

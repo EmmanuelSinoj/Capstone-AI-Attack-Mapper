@@ -1,0 +1,8 @@
+v5 exact patterns: 38
+patterns only                caught 8/150 (5.3%)  normal flagged 12/150 (8.0%)  accuracy 48.7%
+judge alone T=8.8            caught 106/150 (70.7%)  normal flagged 42/150 (28.0%)  accuracy 71.3%
+patterns OR judge T=8.8      caught 107/150 (71.3%)  normal flagged 42/150 (28.0%)  accuracy 71.7%
+judge alone T=9.1            caught 99/150 (66.0%)  normal flagged 41/150 (27.3%)  accuracy 69.3%
+patterns OR judge T=9.1      caught 100/150 (66.7%)  normal flagged 41/150 (27.3%)  accuracy 69.7%
+judge alone T=9.5            caught 60/150 (40.0%)  normal flagged 17/150 (11.3%)  accuracy 64.3%
+patterns OR judge T=9.5      caught 62/150 (41.3%)  normal flagged 23/150 (15.3%)  accuracy 63.0%

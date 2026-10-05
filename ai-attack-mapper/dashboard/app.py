@@ -107,7 +107,7 @@ async def stats():
     try:
         total = conn.execute("SELECT COUNT(*) FROM alerts").fetchone()[0]
         # "flagged" mirrors detection/logger.py's own definition: a row
-        # only gets category="prompt_injection" when heuristics and/or
+        # only gets a category (code "B" = live prompt injection) when heuristics and/or
         # the judge model actually fired on it.
         flagged = conn.execute(
             "SELECT COUNT(*) FROM alerts WHERE category IS NOT NULL"

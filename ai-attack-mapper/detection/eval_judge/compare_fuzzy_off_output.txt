@@ -1,0 +1,52 @@
+
+JailbreakHub TRAINING 700 (fixed thresholds, not k-fold)  (350 attack / 350 normal)
+  patterns only (fuzzy OFF)          caught  30/350   8.6% [ 6.1-12.0] | normal flagged  19/350   5.4% | acc  51.6% prec  61.2%
+  judge alone T=8.8                  caught 246/350  70.3% [65.3-74.8] | normal flagged  81/350  23.1% | acc  73.6% prec  75.2%
+  judge alone T=9.0                  caught 236/350  67.4% [62.4-72.1] | normal flagged  71/350  20.3% | acc  73.6% prec  76.9%
+  judge alone T=9.1                  caught 233/350  66.6% [61.5-71.3] | normal flagged  65/350  18.6% | acc  74.0% prec  78.2%
+  judge alone T=9.5                  caught 131/350  37.4% [32.5-42.6] | normal flagged  25/350   7.1% | acc  65.1% prec  84.0%
+  patterns OR judge T=8.8  <-- fuzzy OFF caught 248/350  70.9% [65.9-75.4] | normal flagged  81/350  23.1% | acc  73.9% prec  75.4%
+  patterns OR judge T=9.0  <-- fuzzy OFF caught 238/350  68.0% [62.9-72.7] | normal flagged  73/350  20.9% | acc  73.6% prec  76.5%
+  patterns OR judge T=9.1  <-- fuzzy OFF caught 235/350  67.1% [62.1-71.9] | normal flagged  69/350  19.7% | acc  73.7% prec  77.3%
+  patterns OR judge T=9.5  <-- fuzzy OFF caught 144/350  41.1% [36.1-46.4] | normal flagged  35/350  10.0% | acc  65.6% prec  80.4%
+  [ref] patterns+fuzzy@0.65          caught 240/350  68.6% [63.5-73.2] | normal flagged 210/350  60.0% | acc  54.3% prec  53.3%
+  [ref] patterns+fuzzy OR judge 9.1  caught 288/350  82.3% [77.9-85.9] | normal flagged 222/350  63.4% | acc  59.4% prec  56.5%
+
+labeled_prompts_500  (250 attack / 250 normal)
+  patterns only (fuzzy OFF)          caught  69/250  27.6% [22.4-33.4] | normal flagged   0/250   0.0% | acc  63.8% prec 100.0%
+  judge alone T=8.8                  caught 147/250  58.8% [52.6-64.7] | normal flagged   0/250   0.0% | acc  79.4% prec 100.0%
+  judge alone T=9.0                  caught 145/250  58.0% [51.8-64.0] | normal flagged   0/250   0.0% | acc  79.0% prec 100.0%
+  judge alone T=9.1                  caught 142/250  56.8% [50.6-62.8] | normal flagged   0/250   0.0% | acc  78.4% prec 100.0%
+  judge alone T=9.5                  caught 125/250  50.0% [43.8-56.2] | normal flagged   0/250   0.0% | acc  75.0% prec 100.0%
+  patterns OR judge T=8.8  <-- fuzzy OFF caught 169/250  67.6% [61.6-73.1] | normal flagged   0/250   0.0% | acc  83.8% prec 100.0%
+  patterns OR judge T=9.0  <-- fuzzy OFF caught 167/250  66.8% [60.7-72.3] | normal flagged   0/250   0.0% | acc  83.4% prec 100.0%
+  patterns OR judge T=9.1  <-- fuzzy OFF caught 165/250  66.0% [59.9-71.6] | normal flagged   0/250   0.0% | acc  83.0% prec 100.0%
+  patterns OR judge T=9.5  <-- fuzzy OFF caught 153/250  61.2% [55.0-67.0] | normal flagged   0/250   0.0% | acc  80.6% prec 100.0%
+  [ref] patterns+fuzzy@0.65          caught 106/250  42.4% [36.4-48.6] | normal flagged   5/250   2.0% | acc  70.2% prec  95.5%
+  [ref] patterns+fuzzy OR judge 9.1  caught 174/250  69.6% [63.6-75.0] | normal flagged   5/250   2.0% | acc  83.8% prec  97.2%
+
+stress_prompts  (30 attack / 40 normal)
+  patterns only (fuzzy OFF)          caught   2/30    6.7% [ 1.8-21.3] | normal flagged   1/40    2.5% | acc  58.6% prec  66.7%
+  judge alone T=8.8                  caught  12/30   40.0% [24.6-57.7] | normal flagged   4/40   10.0% | acc  68.6% prec  75.0%
+  judge alone T=9.0                  caught  10/30   33.3% [19.2-51.2] | normal flagged   4/40   10.0% | acc  65.7% prec  71.4%
+  judge alone T=9.1                  caught  10/30   33.3% [19.2-51.2] | normal flagged   4/40   10.0% | acc  65.7% prec  71.4%
+  judge alone T=9.5                  caught  10/30   33.3% [19.2-51.2] | normal flagged   2/40    5.0% | acc  68.6% prec  83.3%
+  patterns OR judge T=8.8  <-- fuzzy OFF caught  13/30   43.3% [27.4-60.8] | normal flagged   5/40   12.5% | acc  68.6% prec  72.2%
+  patterns OR judge T=9.0  <-- fuzzy OFF caught  12/30   40.0% [24.6-57.7] | normal flagged   5/40   12.5% | acc  67.1% prec  70.6%
+  patterns OR judge T=9.1  <-- fuzzy OFF caught  12/30   40.0% [24.6-57.7] | normal flagged   5/40   12.5% | acc  67.1% prec  70.6%
+  patterns OR judge T=9.5  <-- fuzzy OFF caught  12/30   40.0% [24.6-57.7] | normal flagged   3/40    7.5% | acc  70.0% prec  80.0%
+  [ref] patterns+fuzzy@0.65          caught   5/30   16.7% [ 7.3-33.6] | normal flagged   2/40    5.0% | acc  61.4% prec  71.4%
+  [ref] patterns+fuzzy OR judge 9.1  caught  12/30   40.0% [24.6-57.7] | normal flagged   5/40   12.5% | acc  67.1% prec  70.6%
+
+ALL SHORT (570)  (280 attack / 290 normal)
+  patterns only (fuzzy OFF)          caught  71/280  25.4% [20.6-30.8] | normal flagged   1/290   0.3% | acc  63.2% prec  98.6%
+  judge alone T=8.8                  caught 159/280  56.8% [50.9-62.5] | normal flagged   4/290   1.4% | acc  78.1% prec  97.5%
+  judge alone T=9.0                  caught 155/280  55.4% [49.5-61.1] | normal flagged   4/290   1.4% | acc  77.4% prec  97.5%
+  judge alone T=9.1                  caught 152/280  54.3% [48.4-60.0] | normal flagged   4/290   1.4% | acc  76.8% prec  97.4%
+  judge alone T=9.5                  caught 135/280  48.2% [42.4-54.1] | normal flagged   2/290   0.7% | acc  74.2% prec  98.5%
+  patterns OR judge T=8.8  <-- fuzzy OFF caught 182/280  65.0% [59.2-70.3] | normal flagged   5/290   1.7% | acc  81.9% prec  97.3%
+  patterns OR judge T=9.0  <-- fuzzy OFF caught 179/280  63.9% [58.2-69.3] | normal flagged   5/290   1.7% | acc  81.4% prec  97.3%
+  patterns OR judge T=9.1  <-- fuzzy OFF caught 177/280  63.2% [57.4-68.6] | normal flagged   5/290   1.7% | acc  81.1% prec  97.3%
+  patterns OR judge T=9.5  <-- fuzzy OFF caught 165/280  58.9% [53.1-64.5] | normal flagged   3/290   1.0% | acc  79.3% prec  98.2%
+  [ref] patterns+fuzzy@0.65          caught 111/280  39.6% [34.1-45.5] | normal flagged   7/290   2.4% | acc  69.1% prec  94.1%
+  [ref] patterns+fuzzy OR judge 9.1  caught 186/280  66.4% [60.7-71.7] | normal flagged  10/290   3.4% | acc  81.8% prec  94.9%
