@@ -14,11 +14,46 @@ from typing import Any
 DB_PATH = Path(__file__).parent / "alerts.db"
 SCHEMA_PATH = Path(__file__).parent / "schema.sql"
 
+# Columns added to schema.sql after alerts.db may already have been
+# created on a teammate's machine. `CREATE TABLE IF NOT EXISTS` in
+# schema.sql does NOT retroactively add columns to an existing table --
+# SQLite just skips the whole statement -- so a self-heal migration runs
+# here on every connect. Safe to run repeatedly: it only ALTERs a column
+# in if it's missing.
+_MIGRATION_COLUMNS = {
+    # Kept as plain types (no CHECK) here -- SQLite's ALTER TABLE ADD
+    # COLUMN has restrictions around constraints on existing tables, and
+    # the CHECK in schema.sql's CREATE TABLE already covers brand-new
+    # databases. Application code is responsible for only ever writing
+    # 0/1/NULL into attack_succeeded.
+    "run_id": "TEXT",
+    "attack_succeeded": "INTEGER",
+}
+
+
+def _migrate_missing_columns(conn: sqlite3.Connection) -> None:
+    existing = {row[1] for row in conn.execute("PRAGMA table_info(alerts)")}
+    for name, coltype in _MIGRATION_COLUMNS.items():
+        if name not in existing:
+            conn.execute(f"ALTER TABLE alerts ADD COLUMN {name} {coltype}")
+    conn.commit()
+
 
 def get_connection() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
-    conn.executescript(SCHEMA_PATH.read_text())
+    try:
+        conn.executescript(SCHEMA_PATH.read_text())
+    except sqlite3.OperationalError:
+        # A pre-existing alerts.db predates a column schema.sql's own
+        # CREATE INDEX statements now reference (e.g. run_id) -- the
+        # CREATE TABLE IF NOT EXISTS above was a no-op against the old
+        # table, so the later CREATE INDEX ... ON alerts(run_id) fails
+        # with "no such column". Migrate the missing columns in, then
+        # replay the (idempotent) script so its indexes succeed.
+        _migrate_missing_columns(conn)
+        conn.executescript(SCHEMA_PATH.read_text())
+    _migrate_missing_columns(conn)
     return conn
 
 

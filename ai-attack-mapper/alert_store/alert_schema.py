@@ -21,6 +21,19 @@ Fields:
     system_prompt_version   - which version of the testbed's protected
                               system prompt was active at the time
                               (null for synthetic alerts, no live testbed)
+    run_id                  - groups alerts from the same named test/eval
+                              execution (e.g. a heuristics v1/v2/v3
+                              comparison pass, one Garak sweep, one PyRIT
+                              batch) so runs can be told apart from each
+                              other; null for ordinary one-off live traffic
+    attack_succeeded        - Garak/PyRIT's own pass/fail grading of
+                              whether the attack got the target model to
+                              comply: True/False, or null when not graded
+                              or not applicable (e.g. benign/synthetic
+                              rows). This is ground truth for Auto-
+                              Hardening's before/after evaluation and is
+                              independent of `confidence`, which is our
+                              own detector's belief about the interaction.
 
 Category source: "AI-Enabled Cyber Attack Mapping Framework" (summer
 research co-op paper, Section IV, Table III). Five attack-oriented
@@ -65,6 +78,8 @@ class Alert:
     detector: Optional[str] = None
     confidence: Optional[float] = None
     system_prompt_version: Optional[str] = None
+    run_id: Optional[str] = None             # groups rows from one named test/eval run
+    attack_succeeded: Optional[bool] = None  # Garak/PyRIT's own ground-truth pass/fail
     timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     id: Optional[int] = None                # assigned by SQLite on insert
 
@@ -75,6 +90,8 @@ class Alert:
             raise ValueError(f"category must be one of {VALID_CATEGORIES}, got {self.category!r}")
         if self.confidence is not None and not (0.0 <= self.confidence <= 1.0):
             raise ValueError(f"confidence must be between 0.0 and 1.0, got {self.confidence}")
+        if self.attack_succeeded is not None and not isinstance(self.attack_succeeded, bool):
+            raise ValueError(f"attack_succeeded must be a bool or None, got {self.attack_succeeded!r}")
 
 
 # The exact SQL used to create the table. Kept here so the schema
@@ -89,6 +106,8 @@ CREATE TABLE IF NOT EXISTS alerts (
     confidence              REAL CHECK (confidence IS NULL OR (confidence >= 0.0 AND confidence <= 1.0)),
     category                TEXT CHECK (category IS NULL OR category IN ('A', 'B', 'C', 'D', 'E')),
     timestamp               TEXT NOT NULL,
-    system_prompt_version   TEXT
+    system_prompt_version   TEXT,
+    run_id                  TEXT,
+    attack_succeeded        INTEGER CHECK (attack_succeeded IS NULL OR attack_succeeded IN (0, 1))
 );
 """

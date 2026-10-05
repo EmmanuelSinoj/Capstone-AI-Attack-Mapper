@@ -39,10 +39,13 @@ Sept 2026.
 
 import argparse
 import datetime
+import json
 import os
 import pathlib
 import subprocess
 import sys
+
+import rounds
 
 HERE = pathlib.Path(__file__).parent
 CONFIG_PATH = HERE / "garak_config.json"
@@ -104,6 +107,16 @@ def main() -> int:
             "run once the fast settings have been used to iterate."
         ),
     )
+    parser.add_argument(
+        "--round",
+        default=None,
+        help="Round token to run under (e.g. 20261006_v6-1). Default: today's current round (created if needed).",
+    )
+    parser.add_argument(
+        "--new-round",
+        action="store_true",
+        help="Start a new round (use for a second Garak run on the same day).",
+    )
     args = parser.parse_args()
 
     report_dir = pathlib.Path(args.report_dir)
@@ -115,12 +128,24 @@ def main() -> int:
         print(f"ERROR: {CONFIG_PATH} not found.", file=sys.stderr)
         return 1
 
+    # Round / run id: every request this run sends carries run_id in its body, so the testbed logs it on every alert row.
+    round_token = args.round or (rounds.new_round() if args.new_round else rounds.current_round())
+    run_id = rounds.claim_run_id("garak", round_token)
+    gen_cfg = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    gen_cfg["rest"]["RestGenerator"]["req_template_json_object"]["run_id"] = run_id
+    run_config_path = report_dir / f"garak_run_{timestamp}.generator.json"
+    run_config_path.write_text(json.dumps(gen_cfg, indent=2), encoding="utf-8")
+    (report_dir / f"garak_run_{timestamp}.runinfo.json").write_text(
+        json.dumps({"run_id": run_id, "round": round_token, "tool": "garak", "probes": args.probes, "started": timestamp,
+                    "report_prefix": report_prefix}, indent=2), encoding="utf-8")
+    print(f"Round {round_token}  run_id {run_id}")
+
     cmd = [
         "garak",
         "--model_type",
         "rest",
         "--generator_option_file",
-        str(CONFIG_PATH),
+        str(run_config_path),
         "--probes",
         args.probes,
         "--report_prefix",

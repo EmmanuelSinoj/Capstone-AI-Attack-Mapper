@@ -66,6 +66,21 @@ services:
       # an approved-access token for the gated Prompt-Guard-86M model.
       # Leave blank to run heuristics-only detection.
       - HF_TOKEN=${HF_TOKEN:-}
+    # GPU reservation (added 2026-09-29): the judge model
+    # (live_attack_path/detection/judge.py) now runs Prompt-Guard-86M on
+    # the GPU (device=0) alongside llama3:8b, rather than on CPU. Same
+    # RTX 5060 / Docker Desktop WSL2 passthrough as the ollama service
+    # above. VRAM headroom is thin -- observed 6.6/8.1GB used under load
+    # from llama3:8b alone -- so if this ever needs to change back, set
+    # device=-1 in judge.py and remove this block; nothing else depends
+    # on the testbed container having GPU access.
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     volumes:
       # Bind-mounted (not baked into the image) so editing these during
       # development doesn't require a rebuild, and so alerts.db persists
