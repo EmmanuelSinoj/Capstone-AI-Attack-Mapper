@@ -14,7 +14,7 @@ This WRITES to alerts.db, so run it inside the testbed container (SQLite writes 
 Dry run first (changes nothing):  add --dry-run.
 Testing on an OLD session without run ids:  --legacy-day 2026-10-02 --report-prefix <path without .report.jsonl> --dry-run
 PyRIT rows already carry probe_id live; their attack_succeeded comes from the PyRIT scorer (separate step)."""
-import argparse, collections, glob, json, os, sqlite3, sys
+import argparse, collections, glob, json, os, re, sqlite3, sys
 
 
 def ptext(p):
@@ -25,6 +25,41 @@ def ptext(p):
 def otext(o):
     if isinstance(o, dict): return o.get("text")
     return o if isinstance(o, str) else None
+
+
+LO_RE = re.compile(r"lo=(-inf|-?[\d.]+)")
+
+
+def judge_status(c, round_token):
+    """(total, valid, bad, reason). A row has a valid judge score if its detector string holds a finite log-odds above -1e8
+    (or -inf for an empty prompt). The failure value -1e9, 'judge:unavailable' and a missing judge field are all BAD.
+    Added 2026-10-05: round 20261005_v6-2 was logged with a dead judge (-1e9 on every row) and nothing flagged it."""
+    total = valid = 0
+    for (det,) in c.execute("SELECT detector FROM alerts WHERE run_id LIKE ?", ("%_" + round_token,)):
+        total += 1; m = LO_RE.search(det or "")
+        if m and (m.group(1) == "-inf" or float(m.group(1)) > -1e8): valid += 1
+    return total, valid, total - valid
+
+
+def invalid_marker(reports_dir, round_token):
+    try:
+        return json.load(open(os.path.join(reports_dir, "rounds.json"), encoding="utf-8")).get("invalid", {}).get(round_token, {}).get("reason")
+    except Exception:
+        return None
+
+
+def judge_verdict(c, a):
+    """Print the judge-score status for the round; return True if the round is INVALID."""
+    if not a.round or a.legacy_day: return False
+    total, valid, bad = judge_status(c, a.round); marker = invalid_marker(a.reports_dir, a.round)
+    print(f"JUDGE SCORES for round {a.round}: {total} rows, {valid} with a valid judge score, {bad} without (failure value -1e9 / unavailable / missing)")
+    if bad or marker:
+        print(f"ROUND STATUS: INVALID -- {bad} of {total} rows have no judge score." + (f" Marked invalid in rounds.json: {marker}" if marker else ""))
+        print("  Flag rates (stored categories, reports) are NOT valid for this round and must not be quoted or used for the Mapper tests.")
+        print("  The success grades written by this script come from Garak/PyRIT's own grading and remain valid.")
+        return True
+    print("ROUND STATUS: judge scores complete (no round-level problem found).")
+    return False
 
 
 def main() -> int:
@@ -112,10 +147,12 @@ def main() -> int:
             m = [(grades[(inp, out)], i) for i, inp, out in rrows if (inp, out) in grades]
             won = sum(x for x, _ in m); rupd += m
             print(f"Replay {rid}: {len(rrows)} rows, matched {len(m)}, successful {won}" + ("" if len(m) == len(rrows) else f"  ({len(rrows)-len(m)} unmatched, left alone)"))
-    if a.dry_run or a.legacy_day: print("DRY RUN: nothing written."); return 0
+    if a.dry_run or a.legacy_day:
+        print("DRY RUN: nothing written."); return 3 if judge_verdict(c, a) else 0
     c.executemany("UPDATE alerts SET probe_id=?, attack_succeeded=? WHERE id=?", upd)
     c.executemany("UPDATE alerts SET attack_succeeded=? WHERE id=?", pupd + rupd); c.commit()
-    print(f"Updated {len(upd)} Garak rows, {len(pupd)} PyRIT rows and {len(rupd)} replay rows."); return 0
+    print(f"Updated {len(upd)} Garak rows, {len(pupd)} PyRIT rows and {len(rupd)} replay rows.")
+    return 3 if judge_verdict(c, a) else 0
 
 
 if __name__ == "__main__":

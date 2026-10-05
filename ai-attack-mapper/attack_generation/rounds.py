@@ -23,7 +23,7 @@ def detection_version() -> str:
 def _load() -> dict:
     if STATE.exists():
         return json.loads(STATE.read_text(encoding="utf-8"))
-    return {"latest": None, "counts": {}, "used": []}
+    return {"latest": None, "counts": {}, "used": [], "invalid": {}}
 
 
 def _save(s: dict) -> None:
@@ -54,3 +54,16 @@ def claim_run_id(tool: str, round_token: str) -> str:
         raise SystemExit(f"ERROR: {rid} was already used. Start a new round with --new-round (one run per tool per round).")
     s["used"].append(rid); _save(s)
     return rid
+
+
+def mark_invalid(round_token: str, reason: str) -> None:
+    """Record that a round must not be used for flag-rate numbers (e.g. the judge stopped working). Reports and the
+    Mapper test sample must skip it. The attack-success grades (Garak/PyRIT own grading) are unaffected."""
+    s = _load(); s.setdefault("invalid", {})[round_token] = {"reason": reason, "marked_at": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")}
+    _save(s)
+
+
+def invalid_reason(round_token: str):
+    """Reason string if the round is marked invalid, else None."""
+    e = _load().get("invalid", {}).get(round_token)
+    return e["reason"] if e else None
