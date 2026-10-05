@@ -51,7 +51,7 @@ services:
   testbed:
     build:
       context: .
-      dockerfile: live_attack_path/testbed/Dockerfile
+      dockerfile: testbed/Dockerfile
     container_name: aam-testbed
     restart: unless-stopped
     depends_on:
@@ -62,12 +62,16 @@ services:
     environment:
       - OLLAMA_HOST=http://ollama:11434
       - TESTBED_MODEL=${TESTBED_MODEL:-llama3:8b}
-      # Judge-model detector (live_attack_path/detection/judge.py) needs
+      # Judge-model detector (detection/judge.py) needs
       # an approved-access token for the gated Prompt-Guard-86M model.
       # Leave blank to run heuristics-only detection.
       - HF_TOKEN=${HF_TOKEN:-}
+      # Where the judge model runs: 0 = GPU (default, unchanged), cpu = CPU. Added 2026-10-05 after the dead-judge incident
+      # (round 20261005_v6-2): cpu avoids any GPU contention with Ollama and gives the same scores (max logit difference < 5e-5,
+      # no decision flips). Set JUDGE_DEVICE=cpu in .env to use it. See detection/VERSION.md, "Fault fix 2026-10-05".
+      - JUDGE_DEVICE=${JUDGE_DEVICE:-0}
     # GPU reservation (added 2026-09-29): the judge model
-    # (live_attack_path/detection/judge.py) now runs Prompt-Guard-86M on
+    # (detection/judge.py) now runs Prompt-Guard-86M on
     # the GPU (device=0) alongside llama3:8b, rather than on CPU. Same
     # RTX 5060 / Docker Desktop WSL2 passthrough as the ollama service
     # above. VRAM headroom is thin -- observed 6.6/8.1GB used under load
@@ -85,8 +89,12 @@ services:
       # Bind-mounted (not baked into the image) so editing these during
       # development doesn't require a rebuild, and so alerts.db persists
       # on the host across container rebuilds (NFR2).
-      - ./live_attack_path/testbed/system_prompt.txt:/app/system_prompt.txt
-      - ./live_attack_path/detection:/app/detection
+      - ./testbed/system_prompt.txt:/app/system_prompt.txt
+      # app.py and prompts/ bind-mounted too (added 2026-10-05): edits to app.py take effect on restart without a rebuild (the image
+      # bakes in its own copy), and the numbered system-prompt versions (prompts/, item 12) persist on the host.
+      - ./testbed/app.py:/app/app.py
+      - ./testbed/prompts:/app/prompts
+      - ./detection:/app/detection
       - ./alert_store:/app/alert_store
 
   # ---------------------------------------------------------------------
@@ -101,7 +109,7 @@ services:
   # ---------------------------------------------------------------------
   # Dashboard: read-only "ops console" web UI over alerts.db + Ollama +
   # testbed, so a garak/PyRIT run can be watched from a browser instead
-  # of three terminal windows. See live_attack_path/dashboard/README.md.
+  # of three terminal windows. See dashboard/README.md.
   # Everything it reads is bind-mounted `:ro` -- this service cannot
   # write to alerts.db or call /chat, and doesn't need GPU access itself.
   # depends_on testbed only (not `condition: service_healthy`) since the
@@ -111,7 +119,7 @@ services:
   dashboard:
     build:
       context: .
-      dockerfile: live_attack_path/dashboard/Dockerfile
+      dockerfile: dashboard/Dockerfile
     container_name: aam-dashboard
     restart: unless-stopped
     depends_on:
@@ -123,7 +131,7 @@ services:
       - TESTBED_HOST=http://testbed:8000
     volumes:
       - ./alert_store:/app/alert_store:ro
-      - ./live_attack_path/attack_generation/reports:/app/reports:ro
+      - ./attack_generation/reports:/app/reports:ro
 
 volumes:
   ollama_data:
