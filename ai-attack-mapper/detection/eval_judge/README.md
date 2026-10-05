@@ -4,7 +4,7 @@ Paths below are relative to `ai-attack-mapper/detection/eval_judge/` in the repo
 
 ## Data files the scripts need (not all are in git)
 
-In git: `labeled_prompts_500.json`, `stress_prompts.json`, `support_benign_210.json` (ours, model-written) and the saved score files. **Not in git, place them in this folder yourself:** `jailbreakhub_1000_train.json`, `jailbreakhub_1000_test.json`, `heuristics_v5_train_scores.jsonl` and `heur_v5/` (Emmanuel's JailbreakHub split and v5 code; copied from his PR #3 branch).
+In git: `labeled_prompts_500.json`, `stress_prompts.json`, `support_benign_210.json` (ours, model-written) and the saved score files. **Not in git, place them in this folder yourself:** `jailbreakhub_1000_train.json`, `jailbreakhub_1000_test.json`, `heuristics_v5_train_scores.jsonl` and `heur_v5/` (Emmanuel's JailbreakHub split and v5 code).
 
 | File | Used by | Where it comes from |
 |---|---|---|
