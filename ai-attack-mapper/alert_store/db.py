@@ -70,7 +70,13 @@ def migrate_missing_columns(conn: sqlite3.Connection) -> None:
     existing = {row[1] for row in conn.execute("PRAGMA table_info(alerts)")}
     for name, definition in MIGRATION_COLUMNS.items():
         if name not in existing:
-            conn.execute(f"ALTER TABLE alerts ADD COLUMN {name} {definition}")
+            try:
+                conn.execute(f"ALTER TABLE alerts ADD COLUMN {name} {definition}")
+            except sqlite3.OperationalError as exc:
+                # Another request/thread added the same column between our check and our ALTER
+                # (the testbed logs from several threads right after a restart). That's fine.
+                if "duplicate column name" not in str(exc):
+                    raise
     conn.commit()
 
 
