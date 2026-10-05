@@ -4,11 +4,11 @@ alert_store.py
 The shared SQLite alert store. Every component in the pipeline
 (Testbed logging, Detection, Synthetic Alert Generator, the Mapper,
 Playbook Generation, Auto-Hardening) reads and writes through this
-module rather than touching SQLite directly, so the schema stays
-consistent in one place.
+module (or db.py) rather than touching SQLite directly, so the schema
+stays consistent in one place: schema.sql.
 
 Usage:
-    from alert_store import init_db, insert_alert, query_alerts
+    from alert_store import init_db, insert_alert, query_alerts, query_mapper_input
     from alert_schema import Alert
 
     init_db("alerts.db")
@@ -19,28 +19,23 @@ Usage:
         output="I can't share that, but here's what I can help with...",
         detector="judge_model",
         confidence=0.92,
-        category="llm_genai_application_attack",
+        category="B",                  # A-D (E is never assigned to an alert)
         system_prompt_version="v1",
     ))
 
     live_alerts = query_alerts("alerts.db", source="live")
-    poisoning_alerts = query_alerts("alerts.db", category="attack_against_ai_system")
+    class_b_alerts = query_alerts("alerts.db", category="B")
+
+    # The Mapper must read ONLY this -- id, source, input, output:
+    to_classify = query_mapper_input("alerts.db", source="synthetic")
 """
 
 import sqlite3
 from contextlib import contextmanager
 from typing import Optional, List
 
-from alert_schema import Alert, CREATE_TABLE_SQL
-
-# Columns added to CREATE_TABLE_SQL after a teammate's alerts.db may
-# already exist. CREATE TABLE IF NOT EXISTS is a no-op on an existing
-# table, so it won't backfill new columns -- this self-heal migration
-# runs on every init_db() call. Safe to run repeatedly.
-_MIGRATION_COLUMNS = {
-    "run_id": "TEXT",
-    "attack_succeeded": "INTEGER",
-}
+from alert_schema import Alert
+from db import SAFE_ALERT_COLUMNS, ensure_schema, update_alert as _update_alert
 
 
 @contextmanager
@@ -57,15 +52,12 @@ def _connect(db_path: str):
 
 def init_db(db_path: str) -> None:
     """
-    Creates the alerts table if it doesn't already exist.
-    Safe to call every time the app starts -- it won't wipe existing data.
+    Creates the alerts table, indexes and views from schema.sql, and upgrades
+    an older alerts.db (adds any missing columns). Safe to call every time the
+    app starts -- it won't wipe existing data.
     """
     with _connect(db_path) as conn:
-        conn.execute(CREATE_TABLE_SQL)
-        existing = {row[1] for row in conn.execute("PRAGMA table_info(alerts)")}
-        for name, coltype in _MIGRATION_COLUMNS.items():
-            if name not in existing:
-                conn.execute(f"ALTER TABLE alerts ADD COLUMN {name} {coltype}")
+        ensure_schema(conn)
 
 
 def insert_alert(db_path: str, alert: Alert) -> int:
@@ -80,8 +72,8 @@ def insert_alert(db_path: str, alert: Alert) -> int:
             """
             INSERT INTO alerts
                 (source, input, output, detector, confidence, category, timestamp,
-                 system_prompt_version, run_id, attack_succeeded)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 system_prompt_version, run_id, attack_succeeded, probe_id, source_reference)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 alert.source,
@@ -95,6 +87,8 @@ def insert_alert(db_path: str, alert: Alert) -> int:
                 alert.run_id,
                 # SQLite has no native bool; store as 0/1/NULL.
                 None if alert.attack_succeeded is None else int(alert.attack_succeeded),
+                alert.probe_id,
+                alert.source_reference,
             ),
         )
         return cursor.lastrowid
@@ -105,15 +99,22 @@ def query_alerts(
     source: Optional[str] = None,
     category: Optional[str] = None,
     limit: Optional[int] = None,
+    include_ground_truth: bool = False,
 ) -> List[sqlite3.Row]:
     """
     Fetches alerts, optionally filtered by source ('live'/'synthetic')
     and/or category. Pass neither to get everything.
 
+    By default the answer-key columns (ground_truth_category, source_reference)
+    are NOT returned, so a caller cannot leak them by accident. Evaluation code
+    that needs them passes include_ground_truth=True (or reads the
+    evaluation_truth view via db.get_ground_truth()).
+
     Returns a list of sqlite3.Row objects -- access fields like a dict,
     e.g. row["input"], row["confidence"].
     """
-    query = "SELECT * FROM alerts WHERE 1=1"
+    columns = "*" if include_ground_truth else ", ".join(SAFE_ALERT_COLUMNS)
+    query = f"SELECT {columns} FROM alerts WHERE 1=1"
     params: list = []
 
     if source is not None:
@@ -133,10 +134,35 @@ def query_alerts(
         return cursor.fetchall()
 
 
-def get_alert_by_id(db_path: str, alert_id: int) -> Optional[sqlite3.Row]:
-    """Fetches a single alert by its id, or None if it doesn't exist."""
+def query_mapper_input(
+    db_path: str,
+    source: Optional[str] = None,
+    limit: Optional[int] = None,
+) -> List[sqlite3.Row]:
+    """
+    What the Mapper may see: id, source, input, output -- nothing else.
+    Reads the mapper_input view, so no category, answer key or case title
+    can reach the classification prompt.
+    """
+    query = "SELECT id, source, input, output FROM mapper_input WHERE 1=1"
+    params: list = []
+    if source is not None:
+        query += " AND source = ?"
+        params.append(source)
+    query += " ORDER BY id"
+    if limit is not None:
+        query += " LIMIT ?"
+        params.append(limit)
     with _connect(db_path) as conn:
-        cursor = conn.execute("SELECT * FROM alerts WHERE id = ?", (alert_id,))
+        return conn.execute(query, params).fetchall()
+
+
+def get_alert_by_id(db_path: str, alert_id: int) -> Optional[sqlite3.Row]:
+    """Fetches a single alert by its id (answer-key columns omitted), or None."""
+    with _connect(db_path) as conn:
+        cursor = conn.execute(
+            f"SELECT {', '.join(SAFE_ALERT_COLUMNS)} FROM alerts WHERE id = ?", (alert_id,)
+        )
         return cursor.fetchone()
 
 
@@ -145,14 +171,22 @@ def update_alert_classification(
     alert_id: int,
     category: str,
     confidence: float,
+    **extra,
 ) -> None:
     """
-    Updates an existing alert's category and confidence after the
-    Mapper classifies it. Useful for alerts that were logged before
-    classification ran.
+    Records the Mapper's classification of an existing alert.
+
+    NOTE (changed): `confidence` is the Mapper's confidence and is written to
+    classification_confidence. The detector's own `confidence` column is no
+    longer overwritten. Pass the rest of the Mapper's output as keyword
+    arguments (lifecycle_phase=..., sub_cluster=..., rationale=...,
+    attck_technique=..., atlas_technique=..., owasp_category=..., in_scope=...,
+    adversarial=...), or use db.save_classification() with the Mapper's JSON.
     """
+    if category is not None and category not in {"A", "B", "C", "D", "E"}:
+        raise ValueError(f"category must be one of A-E, got {category!r}")
+    if confidence is not None and not (0.0 <= confidence <= 1.0):
+        raise ValueError(f"confidence must be between 0.0 and 1.0, got {confidence}")
     with _connect(db_path) as conn:
-        conn.execute(
-            "UPDATE alerts SET category = ?, confidence = ? WHERE id = ?",
-            (category, confidence, alert_id),
-        )
+        _update_alert(conn, alert_id, category=category,
+                      classification_confidence=confidence, **extra)

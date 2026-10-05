@@ -26,6 +26,12 @@ Fields:
                               comparison pass, one Garak sweep, one PyRIT
                               batch) so runs can be told apart from each
                               other; null for ordinary one-off live traffic
+    probe_id                - live path: Garak/PyRIT probe identifier for ONE
+                              interaction (null otherwise)
+    source_reference        - synthetic path: ATLAS case study / paper citation.
+                              ANSWER-KEY LEAK RISK (contains the case title):
+                              the Mapper must never read it -- see mapper_input
+                              view in schema.sql
     attack_succeeded        - Garak/PyRIT's own pass/fail grading of
                               whether the attack got the target model to
                               comply: True/False, or null when not graded
@@ -35,6 +41,11 @@ Fields:
                               independent of `confidence`, which is our
                               own detector's belief about the interaction.
 
+The full table (including the columns the Mapper and the evaluation fill in,
+such as lifecycle_phase, classification_confidence and ground_truth_category)
+is defined ONCE, in schema.sql. This module only describes the subset of
+fields the live logger and the synthetic loader write at insert time.
+
 Category source: "AI-Enabled Cyber Attack Mapping Framework" (summer
 research co-op paper, Section IV, Table III). Five attack-oriented
 taxonomy categories, A-E. A sixth grouping in the paper, Category F
@@ -43,6 +54,7 @@ attack taxonomy per the paper and is therefore not a valid value here.
 """
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Optional
 from datetime import datetime, timezone
 
@@ -82,6 +94,8 @@ class Alert:
     attack_succeeded: Optional[bool] = None  # Garak/PyRIT's own ground-truth pass/fail
     timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     id: Optional[int] = None                # assigned by SQLite on insert
+    probe_id: Optional[str] = None           # live path: Garak/PyRIT probe identifier
+    source_reference: Optional[str] = None   # synthetic path: ATLAS case / paper citation (answer-key leak risk)
 
     def validate(self) -> None:
         if self.source not in VALID_SOURCES:
@@ -94,20 +108,9 @@ class Alert:
             raise ValueError(f"attack_succeeded must be a bool or None, got {self.attack_succeeded!r}")
 
 
-# The exact SQL used to create the table. Kept here so the schema
-# definition and the table definition can never drift apart.
-CREATE_TABLE_SQL = """
-CREATE TABLE IF NOT EXISTS alerts (
-    id                      INTEGER PRIMARY KEY AUTOINCREMENT,
-    source                  TEXT NOT NULL CHECK (source IN ('live', 'synthetic')),
-    input                   TEXT NOT NULL,
-    output                  TEXT NOT NULL,
-    detector                TEXT,
-    confidence              REAL CHECK (confidence IS NULL OR (confidence >= 0.0 AND confidence <= 1.0)),
-    category                TEXT CHECK (category IS NULL OR category IN ('A', 'B', 'C', 'D', 'E')),
-    timestamp               TEXT NOT NULL,
-    system_prompt_version   TEXT,
-    run_id                  TEXT,
-    attack_succeeded        INTEGER CHECK (attack_succeeded IS NULL OR attack_succeeded IN (0, 1))
-);
-"""
+# The table definition lives in schema.sql and nowhere else, so the schema
+# and the table can never drift apart. CREATE_TABLE_SQL is the whole script
+# (table, indexes and views); run it with executescript(), or just call
+# alert_store.init_db() / db.get_connection(), which also upgrade old databases.
+SCHEMA_PATH = Path(__file__).parent / "schema.sql"
+CREATE_TABLE_SQL = SCHEMA_PATH.read_text(encoding="utf-8")
