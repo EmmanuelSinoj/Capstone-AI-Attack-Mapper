@@ -4,6 +4,8 @@ Paths below are relative to `ai-attack-mapper/detection/eval_judge/` in the repo
 
 ## Data files the scripts need (not all are in git)
 
+In git: `labeled_prompts_500.json`, `stress_prompts.json`, `support_benign_210.json` (ours, model-written) and the saved score files. **Not in git, place them in this folder yourself:** `jailbreakhub_1000_train.json`, `jailbreakhub_1000_test.json`, `heuristics_v5_train_scores.jsonl` and `heur_v5/` (Emmanuel's JailbreakHub split and v5 code; copied from his PR #3 branch).
+
 | File | Used by | Where it comes from |
 |---|---|---|
 | `jailbreakhub_1000_train.json` (700 prompts, 350 attack / 350 normal, SHA256 starts `03bf746316fa5aa3`) | judge_calibrate, judge_kfold_validate, combined_train_cv, compare_fuzzy_off, encoding_rule_eval | Emmanuel's JailbreakHub split |
@@ -24,7 +26,7 @@ Saved scores (`judge_*_scores*.jsonl`, `exact_short_scores.jsonl`) are what the 
 Inside the testbed container (needs the GPU, the model and `HF_TOKEN`), e.g. `docker compose exec testbed python3 /app/detection/eval_judge/<script>`:
 `judge_calibrate.py`, `judge_score_short.py`, `judge_score_support.py`, `verify_live_detection.py` (expects PASS), `../reporting/rescore_judge.py`, and `judge_test_validate.py` (already run once on the locked 300; do not re-run it to select anything).
 
-On the host (plain Python, read the saved scores): `judge_kfold_validate.py`, `combined_train_cv.py`, `exact_score_short.py`, `short_analysis.py`, `short_full_report.py`, `support_analysis.py`, `compare_fuzzy_off.py` (slow: runs the v5 fuzzy matcher, a few minutes), `locked_300_combined.py`, `encoding_rule_eval.py`, `build_support_benign.py`, `build_label_audit.py`.
+On the host (plain Python, read the saved scores): `judge_kfold_validate.py`, `combined_train_cv.py`, `exact_score_short.py`, `short_analysis.py`, `short_full_report.py`, `support_analysis.py`, `compare_fuzzy_off.py` (slow: runs the v5 fuzzy matcher, a few minutes), `locked_300_combined.py`, `dan_overlap.py` (how many Garak dan.DanInTheWild prompts are also in our JailbreakHub files), `encoding_rule_eval.py`, `build_support_benign.py`, `build_label_audit.py`.
 
 ## Benign replay set (false-alarm measurement)
 
