@@ -86,10 +86,17 @@ LO = re.compile(r"lo=(-?[\d.]+)")
 for r in rows:
     pf, pn = pat(r["input"]); rf, rn = pat(r["output"] or "")
     leak = heuristics._check_system_prompt_leak(r["output"] or "", sysprompt)
-    lo = cache.get(key(r["input"]))
-    if lo is None:
-        m = LO.search(r["detector"] or "")
-        if m: lo = float(m.group(1))
+    # judge score: the failure value -1e9 (a dead judge, see VERSION.md "Fault fix") is NOT a score. Treat it as missing.
+    m = LO.search(r["detector"] or ""); stored = float(m.group(1)) if m else None
+    r["lo_failed"] = stored is not None and stored <= -1e8
+    if r["lo_failed"]: stored = None
+    cl = cache.get(key(r["input"]))
+    if a.round:     # round mode: the score stored live wins; the offline cache only fills rows whose stored score is unusable
+        lo = stored if stored is not None else cl
+        r["lo_src"] = "live" if stored is not None else ("rescored" if cl is not None else None)
+    else:
+        lo = cl if cl is not None else stored
+        r["lo_src"] = "rescored" if cl is not None else ("live" if stored is not None else None)
     jhit = lo is not None and lo >= T
     r.update(pf=pf, pn=pn, rf=rf, leak=leak, lo=lo, jhit=jhit)
     r["live"] = pf or rf or leak or jhit
@@ -114,6 +121,20 @@ if a.round:
         sys.exit(f"no rows with run_id ending in {suffix}. Rounds in the alert store: {', '.join(have) or 'none'}")
     session, baseline = [r for r in round_rows if not r["run_id"].startswith("benign_")], []
     if not session: sys.exit("this round has no Garak/PyRIT rows (only benign); nothing to report on the attack side")
+    # ---- INVALID guard (2026-10-05): a round is only reportable if EVERY row has a judge score (live, or offline re-score) ----
+    _nojudge = [r for r in round_rows if r["lo"] is None and (r["input"] or "").strip()]
+    try: _marker = json.load(open(os.path.join(GDIR, "rounds.json"), encoding="utf-8")).get("invalid", {}).get(a.round, {}).get("reason") if GDIR else None
+    except Exception: _marker = None
+    _n_resc = sum(1 for r in round_rows if r["lo_src"] == "rescored")
+    if _nojudge:
+        msg = f"ROUND {a.round}: INVALID -- {len(_nojudge)} of {len(round_rows)} rows have no judge score (stored value is the failure value -1e9, 'judge unavailable', or missing, and no offline re-score covers them). No flag rates are reported."
+        print(msg)
+        _how = "Run <code>rescore_round.py</code> inside the testbed container to re-score offline (labelled), or re-run the round."
+        open(a.out, "w", encoding="utf-8").write(f"<!doctype html><html><head><meta charset='utf-8'><title>INVALID round {html.escape(a.round)}</title></head><body style='font:16px system-ui;max-width:760px;margin:40px auto;padding:0 16px'>"
+            f"<h1 style='color:#c62828'>Round {html.escape(a.round)}: INVALID</h1><p>{html.escape(msg)}</p>"
+            + (f"<p><b>Marked invalid in rounds.json:</b> {html.escape(_marker)}</p>" if _marker else "")
+            + f"<p>{_how} Garak's own success grades (annotate_run.py) are unaffected, but no flag rate can be quoted for this round.</p></body></html>")
+        print(f"wrote {a.out} (INVALID notice only)"); sys.exit(2)
 elif a.all:
     session, baseline = rows, []
 else:
@@ -281,6 +302,11 @@ if a.round:
     by = collections.defaultdict(list)
     for r in round_rows: by[r["run_id"].split("_", 1)[0]].append(r)
     warns = []
+    if _n_resc:
+        warns.insert(0, f"<b>RE-SCORED OFFLINE with the live rule (43 patterns + judge ≥ {T}), not stored live.</b> {_n_resc:,} of {len(round_rows):,} rows use a judge score computed afterwards by <code>rescore_round.py</code>; the categories stored in the alert store are unchanged"
+                     + (f" and the round is marked invalid as a live round: {esc(_marker)}" if _marker else "") + ".")
+    elif _marker:
+        warns.insert(0, f"<b>This round is marked INVALID in rounds.json:</b> {esc(_marker)}")
     for tool in ("garak", "pyrit", "benign"):
         if tool not in by: warns.append(f"No <b>{tool}</b> run found for round {esc(a.round)}: the round is incomplete.")
     trs = ""
@@ -310,7 +336,9 @@ now = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
 span = f'{rows[0]["timestamp"][:16]} to {rows[-1]["timestamp"][:16]}'
 cov = pct(scored, N)
 n_pat = len(heuristics._ALL_PATTERNS)
-caveat_scored = "" if scored == N else f'<div class="warn">Judge scores are available for {cov} of interactions. The rest are shown as "judge not scored" and cannot be counted in the judge sections. Run <code>rescore_judge.py</code> in the testbed container, then re-run this report.</div>'
+_failed_rows = sum(1 for r in rows if r.get("lo_failed") and r["lo"] is None)
+caveat_failed = f'<div class="warn"><b>INVALID judge results:</b> {_failed_rows:,} rows were logged while the judge returned its failure value (-1e9); they are shown as "judge not scored" and are NOT counted as benign judge verdicts.</div>' if _failed_rows else ""
+caveat_scored = caveat_failed + ("" if scored == N else f'<div class="warn">Judge scores are available for {cov} of interactions. The rest are shown as "judge not scored" and cannot be counted in the judge sections. Run <code>rescore_judge.py</code> in the testbed container, then re-run this report.</div>')
 gk = len({r['input'] for r in rows if r['probe']})
 
 HTML = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">

@@ -148,6 +148,18 @@ def _log_interaction_safe(
         logger.exception("Detection/logging failed for this interaction (response was already sent).")
 
 
+@app.get("/judge/health")
+def judge_health(every: int = 250, force: bool = False):
+    """Judge health for the round scripts (added 2026-10-05, fault fix): counters plus a canary pair (a known attack prompt
+    must score >= the cutoff, a known benign one <= -5). Runs the canary if none has run yet, `every` judge calls have passed
+    since the last one, or force=true. Not logged to the alert store. A sync function on purpose: it runs in the same thread
+    pool as the background logging, i.e. under the same conditions as the real judge calls."""
+    from detection import judge
+    if force:
+        judge.canary()
+    return judge.health(canary_every=every)
+
+
 @app.get("/healthz")
 async def healthz():
     return {"status": "ok", "model": MODEL}
