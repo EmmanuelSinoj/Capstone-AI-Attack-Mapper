@@ -31,6 +31,7 @@ Usage:
 """
 
 import sqlite3
+from datetime import datetime, timezone
 from contextlib import contextmanager
 from typing import Optional, List
 
@@ -176,8 +177,9 @@ def update_alert_classification(
     """
     Records the Mapper's classification of an existing alert.
 
-    NOTE (changed): `confidence` is the Mapper's confidence and is written to
-    classification_confidence. The detector's own `confidence` column is no
+    NOTE (changed): the category is written to predicted_category (the detector's
+    `category` flag is left alone), and `confidence` is the Mapper's confidence and
+    is written to classification_confidence. The detector's own `confidence` column is no
     longer overwritten. Pass the rest of the Mapper's output as keyword
     arguments (lifecycle_phase=..., sub_cluster=..., rationale=...,
     attck_technique=..., atlas_technique=..., owasp_category=..., in_scope=...,
@@ -188,5 +190,6 @@ def update_alert_classification(
     if confidence is not None and not (0.0 <= confidence <= 1.0):
         raise ValueError(f"confidence must be between 0.0 and 1.0, got {confidence}")
     with _connect(db_path) as conn:
-        _update_alert(conn, alert_id, category=category,
+        _update_alert(conn, alert_id, predicted_category=category,
+                      classified_at=datetime.now(timezone.utc).isoformat(),
                       classification_confidence=confidence, **extra)

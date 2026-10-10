@@ -9,7 +9,7 @@
 -- and docs/architecture.md for the full data-flow diagram.
 --
 -- Changes in this version (see CHANGES.md):
---   * new columns sub_cluster, in_scope, adversarial (Mapper output fields
+--   * new columns sub_cluster, in_scope, adversarial, predicted_category, classified_at (Mapper output fields
 --     that previously had nowhere to be stored)
 --   * CHECK constraints on category / ground_truth_category (A-E or NULL)
 --     and on the 0/1 flags -- these apply to NEW databases only; rebuild
@@ -32,11 +32,18 @@ CREATE TABLE IF NOT EXISTS alerts (
     detector                TEXT,
     confidence              REAL,
 
-    -- Taxonomy category (A-D; E is never assigned to an alert). For
-    -- synthetic alerts this stays NULL until the Mapper classifies the
-    -- alert, so classification is blind. The answer key lives in
-    -- ground_truth_category, never here.
+    -- The DETECTOR's flag on live rows: 'B' when the detection layer flagged the
+    -- interaction (live prompt injection / jailbreak), NULL when it did not, and NULL
+    -- for every synthetic alert. The Mapper never writes here (its call goes to
+    -- predicted_category), so the flag survives classification. E is never assigned.
+    -- The answer key lives in ground_truth_category, never here.
     category                TEXT CHECK (category IS NULL OR category IN ('A', 'B', 'C', 'D', 'E')),
+
+    -- The MAPPER's own category call (A-D). NULL until the Mapper has run, and it stays
+    -- NULL if the Mapper says the alert is out of scope. classified_at says the Mapper
+    -- has run on this row (UTC timestamp), whatever its answer was.
+    predicted_category      TEXT CHECK (predicted_category IS NULL OR predicted_category IN ('A', 'B', 'C', 'D', 'E')),
+    classified_at           TEXT,
 
     -- Framework mapping, populated by the classification engine.
     lifecycle_phase         TEXT,
@@ -94,6 +101,64 @@ CREATE INDEX IF NOT EXISTS idx_alerts_run_id ON alerts(run_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_alerts_source_reference
     ON alerts(source_reference) WHERE source_reference IS NOT NULL;
 
+-- ---------------------------------------------------------------------------------------
+-- (v3) The FULL answer key, one row per alert that has one. alerts.ground_truth_category
+-- only holds the category; scoring sub-cluster, attack phase, framework IDs and the
+-- scope/attacker flags needs the rest. It lives in its own table so the Mapper can never
+-- see it (mapper_input exposes only id, source, input, output), and it carries the
+-- development / held-out split so the split is stored, not recomputed.
+-- Framework ID lists are JSON text, like the Mapper's own columns.
+CREATE TABLE IF NOT EXISTS answer_key (
+    alert_id          INTEGER PRIMARY KEY,
+    category          TEXT CHECK (category IS NULL OR category IN ('A', 'B', 'C', 'D', 'E')),
+    sub_cluster       TEXT,
+    lifecycle_phase   TEXT,
+    atlas_primary     TEXT,
+    atlas_supporting  TEXT,
+    attck_techniques  TEXT,
+    owasp_categories  TEXT,
+    in_scope          INTEGER CHECK (in_scope IS NULL OR in_scope IN (0, 1)),
+    adversarial       INTEGER CHECK (adversarial IS NULL OR adversarial IN (0, 1)),
+    outcome_status    TEXT,
+    case_type         TEXT,          -- incident / exercise / paper, when known
+    split             TEXT CHECK (split IS NULL OR split IN ('dev', 'heldout')),
+    label_note        TEXT,
+    created_at        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+-- (v3) One row per Mapper RUN on one alert. The pilot compares a local model with Claude and
+-- runs Claude several times, so results cannot live in the alert row (each run would
+-- overwrite the last). valid_json = 0 rows keep the raw reply, so JSON reliability is
+-- measurable. Re-running the same (alert, run, repeat) replaces that row only.
+CREATE TABLE IF NOT EXISTS mapper_results (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    alert_id            INTEGER NOT NULL,
+    run_id              TEXT NOT NULL,       -- e.g. pilot_20261008_local, pilot_20261008_sonnet
+    model               TEXT NOT NULL,
+    prompt_version      TEXT,
+    repeat_no           INTEGER NOT NULL DEFAULT 1,
+    valid_json          INTEGER NOT NULL DEFAULT 0 CHECK (valid_json IN (0, 1)),
+    predicted_category  TEXT CHECK (predicted_category IS NULL OR predicted_category IN ('A', 'B', 'C', 'D', 'E')),
+    sub_cluster         TEXT,
+    in_scope            INTEGER CHECK (in_scope IS NULL OR in_scope IN (0, 1)),
+    adversarial         INTEGER CHECK (adversarial IS NULL OR adversarial IN (0, 1)),
+    lifecycle_phase     TEXT,
+    attck_technique     TEXT,
+    atlas_technique     TEXT,
+    owasp_category      TEXT,
+    confidence          REAL CHECK (confidence IS NULL OR (confidence >= 0.0 AND confidence <= 1.0)),
+    rationale           TEXT,
+    raw_output          TEXT,
+    error               TEXT,
+    latency_ms          INTEGER,
+    input_tokens        INTEGER,
+    output_tokens       INTEGER,
+    created_at          TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    UNIQUE (alert_id, run_id, repeat_no)
+);
+CREATE INDEX IF NOT EXISTS idx_mapper_results_run ON mapper_results(run_id);
+CREATE INDEX IF NOT EXISTS idx_mapper_results_alert ON mapper_results(alert_id);
+
 -- What the Mapper (and the Model Selection Pilot harness) may read:
 -- the interaction only. No category, no answer key, no case title.
 CREATE VIEW IF NOT EXISTS mapper_input AS
@@ -101,9 +166,36 @@ CREATE VIEW IF NOT EXISTS mapper_input AS
 
 -- What the evaluation scripts read to score the Mapper: the answer key
 -- next to the Mapper's own prediction.
+-- (v3: the first nine columns are unchanged; the answer-key columns are appended.)
 CREATE VIEW IF NOT EXISTS evaluation_truth AS
-    SELECT id, source, ground_truth_category, category AS predicted_category,
-           sub_cluster AS predicted_sub_cluster, classification_confidence,
-           in_scope, adversarial, source_reference
-    FROM alerts
-    WHERE ground_truth_category IS NOT NULL;
+    SELECT a.id, a.source,
+           COALESCE(k.category, a.ground_truth_category) AS ground_truth_category,
+           a.predicted_category,
+           a.sub_cluster AS predicted_sub_cluster, a.classification_confidence,
+           a.in_scope, a.adversarial, a.source_reference,
+           k.sub_cluster AS truth_sub_cluster, k.lifecycle_phase AS truth_lifecycle_phase,
+           k.in_scope AS truth_in_scope, k.adversarial AS truth_adversarial,
+           k.outcome_status, k.split
+    FROM alerts a LEFT JOIN answer_key k ON k.alert_id = a.id
+    WHERE a.ground_truth_category IS NOT NULL OR k.alert_id IS NOT NULL;
+
+-- (v3) Per-run scoring: every Mapper run next to the answer key, with 1/0 correctness
+-- flags (NULL when the run gave no usable answer or the key has no value to compare).
+-- Framework-ID lists are compared in Python, not here.
+CREATE VIEW IF NOT EXISTS mapper_scores AS
+    SELECT r.id AS result_id, r.alert_id, r.run_id, r.model, r.prompt_version, r.repeat_no,
+           r.valid_json, k.split,
+           k.category AS truth_category, r.predicted_category,
+           CASE WHEN r.valid_json = 1 AND r.predicted_category IS NOT NULL AND k.category IS NOT NULL
+                THEN r.predicted_category = k.category END AS category_correct,
+           k.sub_cluster AS truth_sub_cluster, r.sub_cluster AS predicted_sub_cluster,
+           CASE WHEN r.valid_json = 1 AND r.sub_cluster IS NOT NULL AND k.sub_cluster IS NOT NULL
+                THEN r.sub_cluster = k.sub_cluster END AS sub_cluster_correct,
+           k.in_scope AS truth_in_scope, r.in_scope AS predicted_in_scope,
+           CASE WHEN r.valid_json = 1 AND r.in_scope IS NOT NULL AND k.in_scope IS NOT NULL
+                THEN r.in_scope = k.in_scope END AS in_scope_correct,
+           k.adversarial AS truth_adversarial, r.adversarial AS predicted_adversarial,
+           CASE WHEN r.valid_json = 1 AND r.adversarial IS NOT NULL AND k.adversarial IS NOT NULL
+                THEN r.adversarial = k.adversarial END AS adversarial_correct,
+           r.confidence, r.latency_ms
+    FROM mapper_results r JOIN answer_key k ON k.alert_id = r.alert_id;
