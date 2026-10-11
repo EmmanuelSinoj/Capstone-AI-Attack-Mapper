@@ -1,0 +1,1374 @@
+[
+  {
+    "case_id": "AML.CS0034",
+    "case_name": "ProKYC: Deepfake Tool for Account Fraud Attacks",
+    "case_type": "Incident",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0034",
+    "source_reference": "MITRE ATLAS AML.CS0034 (ProKYC: Deepfake Tool for Account Fraud Attacks), data v2026.09",
+    "category": "A",
+    "sub_cluster": "AI-assisted fraud & deepfakes",
+    "phase": "Delivery",
+    "outcome_status": "hypothetical",
+    "atlas_technique_primary": "AML.T0088",
+    "atlas_techniques_supporting": [
+      "AML.T0087",
+      "AML.T0016.002",
+      "AML.T0021",
+      "AML.T0047",
+      "AML.T0015",
+      "AML.T0073",
+      "AML.T0048.000"
+    ],
+    "attck_techniques": [
+      "T1585",
+      "T1656"
+    ],
+    "owasp_llm_2026": [],
+    "framework_notes": {},
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Kept A: generative AI is the fraud tool; face-recognition evasion is the means."
+  },
+  {
+    "case_id": "AML.CS0042",
+    "case_name": "SesameOp: Novel backdoor uses OpenAI Assistants API for command and control",
+    "case_type": "Incident",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0042",
+    "source_reference": "MITRE ATLAS AML.CS0042 (SesameOp: Novel backdoor uses OpenAI Assistants API for command and control), data v2026.09",
+    "category": "A",
+    "sub_cluster": "AI-assisted command & control",
+    "phase": "Command & Control",
+    "outcome_status": "confirmed",
+    "atlas_technique_primary": "AML.T0096",
+    "atlas_techniques_supporting": [],
+    "attck_techniques": [
+      "T1102",
+      "T1071.001"
+    ],
+    "owasp_llm_2026": [],
+    "framework_notes": {},
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Added for A coverage."
+  },
+  {
+    "case_id": "AML.CS0044",
+    "case_name": "LAMEHUG: Malware Leveraging Dynamic AI-Generated Commands",
+    "case_type": "Incident",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0044",
+    "source_reference": "MITRE ATLAS AML.CS0044 (LAMEHUG: Malware Leveraging Dynamic AI-Generated Commands), data v2026.09",
+    "category": "A",
+    "sub_cluster": "AI-assisted malware",
+    "phase": "Exploitation & Installation",
+    "outcome_status": "confirmed",
+    "atlas_technique_primary": "AML.T0102",
+    "atlas_techniques_supporting": [
+      "AML.T0012",
+      "AML.T0052",
+      "AML.T0073",
+      "AML.T0074",
+      "AML.T0011",
+      "AML.T0037",
+      "AML.T0025"
+    ],
+    "attck_techniques": [
+      "T1566.001",
+      "T1059.006",
+      "T1005",
+      "T1041"
+    ],
+    "owasp_llm_2026": [],
+    "framework_notes": {},
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Added for A coverage."
+  },
+  {
+    "case_id": "AML.CS0002",
+    "case_name": "VirusTotal Poisoning",
+    "case_type": "Incident",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0002",
+    "source_reference": "MITRE ATLAS AML.CS0002 (VirusTotal Poisoning), data v2026.09",
+    "category": "B",
+    "sub_cluster": "Poisoning & backdoor",
+    "phase": "Exploitation & Installation",
+    "outcome_status": "confirmed",
+    "atlas_technique_primary": "AML.T0020",
+    "atlas_techniques_supporting": [
+      "AML.T0016.000",
+      "AML.T0043",
+      "AML.T0010.002"
+    ],
+    "attck_techniques": [
+      "T1565.001"
+    ],
+    "owasp_llm_2026": [
+      "LLM05"
+    ],
+    "framework_notes": {
+      "T1565.001": "inferred",
+      "LLM05": "by analogy; target is an ML malware classifier, not an LLM app"
+    },
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Target is an ML malware classifier, not an LLM."
+  },
+  {
+    "case_id": "AML.CS0009",
+    "case_name": "Tay Poisoning",
+    "case_type": "Incident",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0009",
+    "source_reference": "MITRE ATLAS AML.CS0009 (Tay Poisoning), data v2026.09",
+    "category": "B",
+    "sub_cluster": "Poisoning & backdoor",
+    "phase": "Exploitation & Installation",
+    "outcome_status": "confirmed",
+    "atlas_technique_primary": "AML.T0020",
+    "atlas_techniques_supporting": [
+      "AML.T0047",
+      "AML.T0010.002",
+      "AML.T0031"
+    ],
+    "attck_techniques": [
+      "T1565.001"
+    ],
+    "owasp_llm_2026": [
+      "LLM05"
+    ],
+    "framework_notes": {
+      "T1565.001": "inferred"
+    },
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": null
+  },
+  {
+    "case_id": "AML.CS0015",
+    "case_name": "Compromised PyTorch Dependency Chain",
+    "case_type": "Incident",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0015",
+    "source_reference": "MITRE ATLAS AML.CS0015 (Compromised PyTorch Dependency Chain), data v2026.09",
+    "category": "B",
+    "sub_cluster": "AI supply chain",
+    "phase": "Delivery",
+    "outcome_status": "confirmed",
+    "atlas_technique_primary": "AML.T0010.001",
+    "atlas_techniques_supporting": [
+      "AML.T0037",
+      "AML.T0025"
+    ],
+    "attck_techniques": [
+      "T1195.001"
+    ],
+    "owasp_llm_2026": [
+      "LLM04"
+    ],
+    "framework_notes": {
+      "T1195.001": "refines team's T1195"
+    },
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": null
+  },
+  {
+    "case_id": "AML.CS0023",
+    "case_name": "ShadowRay: Hijacking Exposed Ray Clusters",
+    "case_type": "Incident",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0023",
+    "source_reference": "MITRE ATLAS AML.CS0023 (ShadowRay: Hijacking Exposed Ray Clusters), data v2026.09",
+    "category": "B",
+    "sub_cluster": "Extraction, inversion & adversarial",
+    "phase": "Actions on Objectives",
+    "outcome_status": "confirmed",
+    "atlas_technique_primary": "AML.T0035",
+    "atlas_techniques_supporting": [
+      "AML.T0006",
+      "AML.T0049",
+      "AML.T0055",
+      "AML.T0025",
+      "AML.T0010.003",
+      "AML.T0048.000"
+    ],
+    "attck_techniques": [
+      "T1190",
+      "T1552",
+      "T1496",
+      "T1213"
+    ],
+    "owasp_llm_2026": [
+      "LLM02"
+    ],
+    "framework_notes": {
+      "T1213": "inferred",
+      "LLM02": "by analogy; target is AI compute infrastructure"
+    },
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Kept B (extraction): the outcome was theft of models and credentials from AI infrastructure."
+  },
+  {
+    "case_id": "AML.CS0031",
+    "case_name": "Malicious Models on Hugging Face",
+    "case_type": "Incident",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0031",
+    "source_reference": "MITRE ATLAS AML.CS0031 (Malicious Models on Hugging Face), data v2026.09",
+    "category": "B",
+    "sub_cluster": "AI supply chain",
+    "phase": "Delivery",
+    "outcome_status": "partial",
+    "atlas_technique_primary": "AML.T0010",
+    "atlas_techniques_supporting": [
+      "AML.T0018.002",
+      "AML.T0115.001",
+      "AML.T0076",
+      "AML.T0011.000",
+      "AML.T0072"
+    ],
+    "attck_techniques": [
+      "T1195"
+    ],
+    "owasp_llm_2026": [
+      "LLM04"
+    ],
+    "framework_notes": {
+      "T1195": "inferred"
+    },
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": null
+  },
+  {
+    "case_id": "AML.CS0047",
+    "case_name": "Code to Deploy Destructive AI Agent Discovered in Amazon Q VS Code Extension",
+    "case_type": "Incident",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0047",
+    "source_reference": "MITRE ATLAS AML.CS0047 (Code to Deploy Destructive AI Agent Discovered in Amazon Q VS Code Extension), data v2026.09",
+    "category": "B",
+    "sub_cluster": "AI supply chain",
+    "phase": "Delivery",
+    "outcome_status": "attempted_failed",
+    "atlas_technique_primary": "AML.T0010.001",
+    "atlas_techniques_supporting": [
+      "AML.T0065",
+      "AML.T0055",
+      "AML.T0011.001",
+      "AML.T0103",
+      "AML.T0051.000",
+      "AML.T0101"
+    ],
+    "attck_techniques": [
+      "T1195.001",
+      "T1552"
+    ],
+    "owasp_llm_2026": [
+      "LLM04",
+      "LLM03",
+      "LLM01"
+    ],
+    "framework_notes": {
+      "T1195.001": "refines team's T1195",
+      "T1552": "inferred",
+      "LLM03": "secondary",
+      "LLM01": "secondary"
+    },
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Payload failed to execute (syntax error)."
+  },
+  {
+    "case_id": "AML.CS0053",
+    "case_name": "Poisoned Postmark MCP Server Email Exfiltration",
+    "case_type": "Incident",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0053",
+    "source_reference": "MITRE ATLAS AML.CS0053 (Poisoned Postmark MCP Server Email Exfiltration), data v2026.09",
+    "category": "B",
+    "sub_cluster": "AI supply chain",
+    "phase": "Delivery",
+    "outcome_status": "confirmed",
+    "atlas_technique_primary": "AML.T0010.005",
+    "atlas_techniques_supporting": [
+      "AML.T0073",
+      "AML.T0017",
+      "AML.T0115.002",
+      "AML.T0109",
+      "AML.T0110.001",
+      "AML.T0011.002",
+      "AML.T0086",
+      "AML.T0048"
+    ],
+    "attck_techniques": [
+      "T1195.001"
+    ],
+    "owasp_llm_2026": [
+      "LLM04"
+    ],
+    "framework_notes": {
+      "T1195.001": "refines team's T1195"
+    },
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Kept B (supply chain): entry was an npm registry rug pull, not agent misuse."
+  },
+  {
+    "case_id": "AML.CS0056",
+    "case_name": "Model Distillation Campaigns Targeting Anthropic Claude",
+    "case_type": "Incident",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0056",
+    "source_reference": "MITRE ATLAS AML.CS0056 (Model Distillation Campaigns Targeting Anthropic Claude), data v2026.09",
+    "category": "B",
+    "sub_cluster": "Extraction, inversion & adversarial",
+    "phase": "Actions on Objectives",
+    "outcome_status": "confirmed",
+    "atlas_technique_primary": "AML.T0024.002",
+    "atlas_techniques_supporting": [
+      "AML.T0008.005",
+      "AML.T0065",
+      "AML.T0040",
+      "AML.T0048.004",
+      "AML.T0048.002",
+      "AML.T0048.003"
+    ],
+    "attck_techniques": [
+      "T1213"
+    ],
+    "owasp_llm_2026": [
+      "LLM02"
+    ],
+    "framework_notes": {
+      "T1213": "inferred"
+    },
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": null
+  },
+  {
+    "case_id": "AML.CS0030",
+    "case_name": "LLM Jacking",
+    "case_type": "Incident",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0030",
+    "source_reference": "MITRE ATLAS AML.CS0030 (LLM Jacking), data v2026.09",
+    "category": "C",
+    "sub_cluster": "LLM service abuse & cost",
+    "phase": "Actions on Objectives",
+    "outcome_status": "confirmed",
+    "atlas_technique_primary": "AML.T0012",
+    "atlas_techniques_supporting": [
+      "AML.T0049",
+      "AML.T0055",
+      "AML.T0016.001",
+      "AML.T0075",
+      "AML.T0048.000"
+    ],
+    "attck_techniques": [
+      "T1190",
+      "T1552",
+      "T1078.004",
+      "T1496"
+    ],
+    "owasp_llm_2026": [
+      "LLM06"
+    ],
+    "framework_notes": {},
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Added for C coverage."
+  },
+  {
+    "case_id": "AML.CS0043",
+    "case_name": "Malware Prototype with Embedded Prompt Injection",
+    "case_type": "Incident",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0043",
+    "source_reference": "MITRE ATLAS AML.CS0043 (Malware Prototype with Embedded Prompt Injection), data v2026.09",
+    "category": "C",
+    "sub_cluster": "Prompt injection against LLM security tools",
+    "phase": "Exploitation & Installation",
+    "outcome_status": "attempted_failed",
+    "atlas_technique_primary": "AML.T0051.000",
+    "atlas_techniques_supporting": [
+      "AML.T0065",
+      "AML.T0017",
+      "AML.T0015",
+      "AML.T0097",
+      "AML.T0055",
+      "AML.T0037",
+      "AML.T0025"
+    ],
+    "attck_techniques": [
+      "T1497",
+      "T1552.004",
+      "T1005"
+    ],
+    "owasp_llm_2026": [
+      "LLM01"
+    ],
+    "framework_notes": {},
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Kept C: the injection targets LLM-based analysis tools. Outcome is a failed attempt."
+  },
+  {
+    "case_id": "AML.CS0057",
+    "case_name": "Storm-2139 Azure OpenAI Guardrail Bypass",
+    "case_type": "Incident",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0057",
+    "source_reference": "MITRE ATLAS AML.CS0057 (Storm-2139 Azure OpenAI Guardrail Bypass), data v2026.09",
+    "category": "C",
+    "sub_cluster": "LLM service abuse & cost",
+    "phase": "Actions on Objectives",
+    "outcome_status": "confirmed",
+    "atlas_technique_primary": "AML.T0054",
+    "atlas_techniques_supporting": [
+      "AML.T0017",
+      "AML.T0008",
+      "AML.T0079",
+      "AML.T0012",
+      "AML.T0040",
+      "AML.T0088",
+      "AML.T0048.002",
+      "AML.T0048.000"
+    ],
+    "attck_techniques": [
+      "T1078.004",
+      "T1552"
+    ],
+    "owasp_llm_2026": [
+      "LLM01"
+    ],
+    "framework_notes": {},
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Kept C: abuse of a hosted GenAI service through stolen accounts and resale tooling, beyond a single jailbreak."
+  },
+  {
+    "case_id": "AML.CS0072",
+    "case_name": "AI Recommendation Poisoning via Crafted AI Assistant Links",
+    "case_type": "Incident",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0072",
+    "source_reference": "MITRE ATLAS AML.CS0072 (AI Recommendation Poisoning via Crafted AI Assistant Links), data v2026.09",
+    "category": "C",
+    "sub_cluster": "Prompt & memory manipulation",
+    "phase": "Exploitation & Installation",
+    "outcome_status": "partial",
+    "atlas_technique_primary": "AML.T0080.000",
+    "atlas_techniques_supporting": [
+      "AML.T0016",
+      "AML.T0079",
+      "AML.T0131",
+      "AML.T0068",
+      "AML.T0130"
+    ],
+    "attck_techniques": [
+      "T1565.001"
+    ],
+    "owasp_llm_2026": [
+      "LLM01",
+      "LLM05",
+      "LLM08"
+    ],
+    "framework_notes": {
+      "T1565.001": "inferred",
+      "LLM05": "secondary",
+      "LLM08": "secondary"
+    },
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Kept C: the target is the assistant app's memory via crafted links; no autonomous agent acts."
+  },
+  {
+    "case_id": "AML.CS0068",
+    "case_name": "Autonomous OpenAI Evaluation Agents Compromise Hugging Face Infrastructure",
+    "case_type": "Incident",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0068",
+    "source_reference": "MITRE ATLAS AML.CS0068 (Autonomous OpenAI Evaluation Agents Compromise Hugging Face Infrastructure), data v2026.09",
+    "category": "D",
+    "sub_cluster": "Autonomous offensive operations",
+    "phase": "Exploitation & Installation",
+    "outcome_status": "confirmed",
+    "atlas_technique_primary": "AML.T0117",
+    "atlas_techniques_supporting": [
+      "AML.T0017.001",
+      "AML.T0122",
+      "AML.T0118.000",
+      "AML.T0116",
+      "AML.T0102",
+      "AML.T0049",
+      "AML.T0050",
+      "AML.T0121",
+      "AML.T0072",
+      "AML.T0123",
+      "AML.T0055",
+      "AML.T0012",
+      "AML.T0119",
+      "AML.T0037",
+      "AML.T0120",
+      "AML.T0091.000",
+      "AML.T0075",
+      "AML.T0089",
+      "AML.T0105",
+      "AML.T0036",
+      "AML.T0025"
+    ],
+    "attck_techniques": [
+      "T1190",
+      "T1210",
+      "T1552",
+      "T1078",
+      "T1550.001",
+      "T1611",
+      "T1102",
+      "T1027"
+    ],
+    "owasp_llm_2026": [
+      "LLM03"
+    ],
+    "framework_notes": {
+      "LLM03": "excessive agency of the evaluated agents"
+    },
+    "in_scope": true,
+    "non_adversarial": true,
+    "label_note": "Kept D. Non-adversarial (no human attacker): score its category, but do not use it as an attacker-technique example."
+  },
+  {
+    "case_id": "AML.CS0069",
+    "case_name": "GTG-1002 Claude Code Espionage Campaign",
+    "case_type": "Incident",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0069",
+    "source_reference": "MITRE ATLAS AML.CS0069 (GTG-1002 Claude Code Espionage Campaign), data v2026.09",
+    "category": "D",
+    "sub_cluster": "Autonomous offensive operations",
+    "phase": "Actions on Objectives",
+    "outcome_status": "confirmed",
+    "atlas_technique_primary": "AML.T0117",
+    "atlas_techniques_supporting": [
+      "AML.T0040",
+      "AML.T0051.000",
+      "AML.T0054",
+      "AML.T0016.001",
+      "AML.T0128",
+      "AML.T0103",
+      "AML.T0116",
+      "AML.T0006",
+      "AML.T0017.001",
+      "AML.T0049",
+      "AML.T0075",
+      "AML.T0089",
+      "AML.T0055",
+      "AML.T0012",
+      "AML.T0125",
+      "AML.T0036",
+      "AML.T0037",
+      "AML.T0126",
+      "AML.T0127",
+      "AML.T0025"
+    ],
+    "attck_techniques": [
+      "T1190",
+      "T1552",
+      "T1078",
+      "T1136",
+      "T1074"
+    ],
+    "owasp_llm_2026": [
+      "LLM01"
+    ],
+    "framework_notes": {
+      "LLM01": "applies to the jailbreak of the provider's agent only"
+    },
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Kept D: the agent ran ~80-90% of the campaign autonomously, which is the D definition."
+  },
+  {
+    "case_id": "AML.CS0070",
+    "case_name": "Threat Actor Uses a DeepSeek-Powered Hermes Agent in Langflow and n8n Exploitation Attempts",
+    "case_type": "Incident",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0070",
+    "source_reference": "MITRE ATLAS AML.CS0070 (Threat Actor Uses a DeepSeek-Powered Hermes Agent in Langflow and n8n Exploitation Attempts), data v2026.09",
+    "category": "D",
+    "sub_cluster": "Autonomous offensive operations",
+    "phase": "Exploitation & Installation",
+    "outcome_status": "attempted_failed",
+    "atlas_technique_primary": "AML.T0117",
+    "atlas_techniques_supporting": [
+      "AML.T0016.002",
+      "AML.T0016.001",
+      "AML.T0016.004",
+      "AML.T0017.002",
+      "AML.T0040",
+      "AML.T0102",
+      "AML.T0116",
+      "AML.T0000.003",
+      "AML.T0016.003",
+      "AML.T0006",
+      "AML.T0049",
+      "AML.T0095.000",
+      "AML.T0000"
+    ],
+    "attck_techniques": [
+      "T1190",
+      "T1595",
+      "T1588.005"
+    ],
+    "owasp_llm_2026": [],
+    "framework_notes": {
+      "T1190": "attempted"
+    },
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Kept D, phase Exploitation & Installation (attempted; all exploitation failed)."
+  },
+  {
+    "case_id": "AML.CS0071",
+    "case_name": "Multi-Agent Framework Compromises Taiwanese Government Systems",
+    "case_type": "Incident",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0071",
+    "source_reference": "MITRE ATLAS AML.CS0071 (Multi-Agent Framework Compromises Taiwanese Government Systems), data v2026.09",
+    "category": "D",
+    "sub_cluster": "Autonomous offensive operations",
+    "phase": "Actions on Objectives",
+    "outcome_status": "confirmed",
+    "atlas_technique_primary": "AML.T0124",
+    "atlas_techniques_supporting": [
+      "AML.T0117",
+      "AML.T0118.001",
+      "AML.T0116",
+      "AML.T0006",
+      "AML.T0036",
+      "AML.T0012",
+      "AML.T0049",
+      "AML.T0126",
+      "AML.T0025"
+    ],
+    "attck_techniques": [
+      "T1190",
+      "T1078",
+      "T1110.003",
+      "T1595"
+    ],
+    "owasp_llm_2026": [],
+    "framework_notes": {},
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Kept D: a multi-agent framework orchestrated the intrusion end to end."
+  },
+  {
+    "case_id": "AML.CS0004",
+    "case_name": "Camera Hijack Attack on Facial Recognition System",
+    "case_type": "Incident",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0004",
+    "source_reference": "MITRE ATLAS AML.CS0004 (Camera Hijack Attack on Facial Recognition System), data v2026.09",
+    "category": "B",
+    "sub_cluster": "Extraction, inversion & adversarial",
+    "phase": "Actions on Objectives",
+    "outcome_status": "confirmed",
+    "atlas_technique_primary": "AML.T0015",
+    "atlas_techniques_supporting": [
+      "AML.T0008.001",
+      "AML.T0016.000",
+      "AML.T0016.001",
+      "AML.T0021",
+      "AML.T0047",
+      "AML.T0048.000",
+      "AML.T0087"
+    ],
+    "attck_techniques": [
+      "T1656",
+      "T1078"
+    ],
+    "owasp_llm_2026": [],
+    "framework_notes": {
+      "T1656": "inferred",
+      "T1078": "inferred"
+    },
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Kept B: the face-recognition model itself is defeated (virtual-camera injection); the fraud is the downstream harm."
+  },
+  {
+    "case_id": "AML.CS0032",
+    "case_name": "Attempted Evasion of ML Phishing Webpage Detection System",
+    "case_type": "Incident",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0032",
+    "source_reference": "MITRE ATLAS AML.CS0032 (Attempted Evasion of ML Phishing Webpage Detection System), data v2026.09",
+    "category": "B",
+    "sub_cluster": "Extraction, inversion & adversarial",
+    "phase": "Exploitation & Installation",
+    "outcome_status": "partial",
+    "atlas_technique_primary": "AML.T0043.003",
+    "atlas_techniques_supporting": [
+      "AML.T0015",
+      "AML.T0048.003",
+      "AML.T0052"
+    ],
+    "attck_techniques": [
+      "T1566.002"
+    ],
+    "owasp_llm_2026": [],
+    "framework_notes": {
+      "T1566.002": "inferred"
+    },
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Adversarial examples crafted to evade an ML phishing-page classifier; attempt, outcome is attempted/partial per source."
+  },
+  {
+    "case_id": "AML.CS0059",
+    "case_name": "EchoLeak: Zero-Click Prompt Injection Targeting M365 Copilot for Data Exfiltration",
+    "case_type": "Exercise",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0059",
+    "source_reference": "MITRE ATLAS AML.CS0059 (EchoLeak: Zero-Click Prompt Injection Targeting M365 Copilot for Data Exfiltration), data v2026.09",
+    "category": "C",
+    "sub_cluster": "RAG poisoning & data extraction",
+    "phase": "Actions on Objectives",
+    "outcome_status": "confirmed",
+    "atlas_technique_primary": "AML.T0070",
+    "atlas_techniques_supporting": [
+      "AML.T0025",
+      "AML.T0048",
+      "AML.T0051.002",
+      "AML.T0065",
+      "AML.T0066",
+      "AML.T0067",
+      "AML.T0068",
+      "AML.T0077",
+      "AML.T0079",
+      "AML.T0085.000",
+      "AML.T0093"
+    ],
+    "attck_techniques": [
+      "T1213",
+      "T1565.001"
+    ],
+    "owasp_llm_2026": [
+      "LLM01",
+      "LLM02",
+      "LLM08"
+    ],
+    "framework_notes": {
+      "T1213": "inferred",
+      "T1565.001": "inferred",
+      "LLM08": "secondary"
+    },
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Zero-click indirect injection in M365 Copilot (EchoLeak)."
+  },
+  {
+    "case_id": "AML.CS0035",
+    "case_name": "Data Exfiltration from Slack AI via Indirect Prompt Injection",
+    "case_type": "Exercise",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0035",
+    "source_reference": "MITRE ATLAS AML.CS0035 (Data Exfiltration from Slack AI via Indirect Prompt Injection), data v2026.09",
+    "category": "C",
+    "sub_cluster": "Conversation & hidden-context compromise",
+    "phase": "Actions on Objectives",
+    "outcome_status": "confirmed",
+    "atlas_technique_primary": "AML.T0082",
+    "atlas_techniques_supporting": [
+      "AML.T0012",
+      "AML.T0047",
+      "AML.T0051.001",
+      "AML.T0065",
+      "AML.T0066",
+      "AML.T0070",
+      "AML.T0077"
+    ],
+    "attck_techniques": [
+      "T1213",
+      "T1552"
+    ],
+    "owasp_llm_2026": [
+      "LLM01",
+      "LLM02",
+      "LLM08"
+    ],
+    "framework_notes": {
+      "T1213": "inferred",
+      "T1552": "inferred",
+      "LLM08": "secondary"
+    },
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Indirect injection exfiltrating data from Slack AI."
+  },
+  {
+    "case_id": "AML.CS0026",
+    "case_name": "Financial Transaction Hijacking with M365 Copilot as an Insider",
+    "case_type": "Exercise",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0026",
+    "source_reference": "MITRE ATLAS AML.CS0026 (Financial Transaction Hijacking with M365 Copilot as an Insider), data v2026.09",
+    "category": "C",
+    "sub_cluster": "RAG poisoning & data extraction",
+    "phase": "Actions on Objectives",
+    "outcome_status": "confirmed",
+    "atlas_technique_primary": "AML.T0071",
+    "atlas_techniques_supporting": [
+      "AML.T0047",
+      "AML.T0048.000",
+      "AML.T0051.001",
+      "AML.T0053",
+      "AML.T0064",
+      "AML.T0065",
+      "AML.T0066",
+      "AML.T0067.000",
+      "AML.T0068",
+      "AML.T0069.000",
+      "AML.T0069.001",
+      "AML.T0070",
+      "AML.T0093"
+    ],
+    "attck_techniques": [
+      "T1565.001",
+      "T1190"
+    ],
+    "owasp_llm_2026": [
+      "LLM01",
+      "LLM05",
+      "LLM09"
+    ],
+    "framework_notes": {
+      "T1565.001": "inferred",
+      "T1190": "inferred"
+    },
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Crafted RAG content makes Copilot surface attacker bank details."
+  },
+  {
+    "case_id": "AML.CS0060",
+    "case_name": "Cross-Site Scripting via Prompt Manipulation in Lenovo AI Chatbot",
+    "case_type": "Exercise",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0060",
+    "source_reference": "MITRE ATLAS AML.CS0060 (Cross-Site Scripting via Prompt Manipulation in Lenovo AI Chatbot), data v2026.09",
+    "category": "C",
+    "sub_cluster": "Plugin RCE & insecure output handling",
+    "phase": "Exploitation & Installation",
+    "outcome_status": "confirmed",
+    "atlas_technique_primary": "AML.T0077",
+    "atlas_techniques_supporting": [
+      "AML.T0008",
+      "AML.T0011",
+      "AML.T0047",
+      "AML.T0048",
+      "AML.T0050",
+      "AML.T0051.000",
+      "AML.T0065",
+      "AML.T0091.001",
+      "AML.T0093",
+      "AML.T0113"
+    ],
+    "attck_techniques": [
+      "T1059.007",
+      "T1539",
+      "T1550.004"
+    ],
+    "owasp_llm_2026": [
+      "LLM01"
+    ],
+    "framework_notes": {},
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Kept C: target is a web chatbot and the flaw is stored XSS via insecure output handling; no autonomous agent acts."
+  },
+  {
+    "case_id": "AML.CS0016",
+    "case_name": "Achieving Code Execution in MathGPT via Prompt Injection",
+    "case_type": "Exercise",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0016",
+    "source_reference": "MITRE ATLAS AML.CS0016 (Achieving Code Execution in MathGPT via Prompt Injection), data v2026.09",
+    "category": "C",
+    "sub_cluster": "Plugin RCE & insecure output handling",
+    "phase": "Exploitation & Installation",
+    "outcome_status": "confirmed",
+    "atlas_technique_primary": "AML.T0051.000",
+    "atlas_techniques_supporting": [
+      "AML.T0001",
+      "AML.T0029",
+      "AML.T0042",
+      "AML.T0047",
+      "AML.T0048.000",
+      "AML.T0053",
+      "AML.T0055",
+      "AML.T0093"
+    ],
+    "attck_techniques": [
+      "T1190",
+      "T1059.006",
+      "T1552.001",
+      "T1499"
+    ],
+    "owasp_llm_2026": [
+      "LLM01",
+      "LLM06"
+    ],
+    "framework_notes": {
+      "T1499": "inferred",
+      "LLM06": "secondary"
+    },
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Prompt injection reaches code execution in an LLM app."
+  },
+  {
+    "case_id": "AML.CS0020",
+    "case_name": "Indirect Prompt Injection Threats: Bing Chat Data Pirate",
+    "case_type": "Exercise",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0020",
+    "source_reference": "MITRE ATLAS AML.CS0020 (Indirect Prompt Injection Threats: Bing Chat Data Pirate), data v2026.09",
+    "category": "C",
+    "sub_cluster": "Conversation & hidden-context compromise",
+    "phase": "Actions on Objectives",
+    "outcome_status": "confirmed",
+    "atlas_technique_primary": "AML.T0051.001",
+    "atlas_techniques_supporting": [
+      "AML.T0017",
+      "AML.T0048.003",
+      "AML.T0052.000",
+      "AML.T0068"
+    ],
+    "attck_techniques": [
+      "T1598",
+      "T1566.002"
+    ],
+    "owasp_llm_2026": [
+      "LLM01"
+    ],
+    "framework_notes": {
+      "T1598": "inferred",
+      "T1566.002": "inferred"
+    },
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Kept C: hidden page text turns the browser chat assistant into a PII-soliciting social engineer."
+  },
+  {
+    "case_id": "AML.CS0063",
+    "case_name": "Prompt-Based Attacks Against Gemini via Calendar Invitations",
+    "case_type": "Exercise",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0063",
+    "source_reference": "MITRE ATLAS AML.CS0063 (Prompt-Based Attacks Against Gemini via Calendar Invitations), data v2026.09",
+    "category": "D",
+    "sub_cluster": "Agent tool & API misuse",
+    "phase": "Actions on Objectives",
+    "outcome_status": "confirmed",
+    "atlas_technique_primary": "AML.T0053",
+    "atlas_techniques_supporting": [
+      "AML.T0006",
+      "AML.T0025",
+      "AML.T0048.003",
+      "AML.T0051.001",
+      "AML.T0051.002",
+      "AML.T0054",
+      "AML.T0065",
+      "AML.T0080.001",
+      "AML.T0084",
+      "AML.T0085.001",
+      "AML.T0086",
+      "AML.T0093",
+      "AML.T0094",
+      "AML.T0101"
+    ],
+    "attck_techniques": [
+      "T1059",
+      "T1485",
+      "T1041"
+    ],
+    "owasp_llm_2026": [
+      "LLM01",
+      "LLM03"
+    ],
+    "framework_notes": {
+      "T1059": "inferred",
+      "T1485": "inferred",
+      "T1041": "inferred"
+    },
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Calendar-invite injections drive Gemini tool actions."
+  },
+  {
+    "case_id": "AML.CS0067",
+    "case_name": "Claude Code GitHub Action Secret Exposure",
+    "case_type": "Exercise",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0067",
+    "source_reference": "MITRE ATLAS AML.CS0067 (Claude Code GitHub Action Secret Exposure), data v2026.09",
+    "category": "D",
+    "sub_cluster": "Agent tool & API misuse",
+    "phase": "Actions on Objectives",
+    "outcome_status": "confirmed",
+    "atlas_technique_primary": "AML.T0098",
+    "atlas_techniques_supporting": [
+      "AML.T0051.001",
+      "AML.T0053",
+      "AML.T0054",
+      "AML.T0057",
+      "AML.T0065",
+      "AML.T0084.001",
+      "AML.T0084.002",
+      "AML.T0086",
+      "AML.T0093",
+      "AML.T0095.000"
+    ],
+    "attck_techniques": [
+      "T1552.001",
+      "T1190"
+    ],
+    "owasp_llm_2026": [
+      "LLM01",
+      "LLM03",
+      "LLM02"
+    ],
+    "framework_notes": {
+      "T1552.001": "inferred",
+      "T1190": "inferred",
+      "LLM02": "secondary"
+    },
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Injected issue/PR text makes the CI agent leak secrets."
+  },
+  {
+    "case_id": "AML.CS0045",
+    "case_name": "Data Exfiltration via an MCP Server used by Cursor",
+    "case_type": "Exercise",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0045",
+    "source_reference": "MITRE ATLAS AML.CS0045 (Data Exfiltration via an MCP Server used by Cursor), data v2026.09",
+    "category": "D",
+    "sub_cluster": "Agent tool & API misuse",
+    "phase": "Exploitation & Installation",
+    "outcome_status": "partial",
+    "atlas_technique_primary": "AML.T0083",
+    "atlas_techniques_supporting": [
+      "AML.T0048.000",
+      "AML.T0051.001",
+      "AML.T0053",
+      "AML.T0065",
+      "AML.T0068",
+      "AML.T0078",
+      "AML.T0079",
+      "AML.T0086"
+    ],
+    "attck_techniques": [
+      "T1059.004",
+      "T1552.001",
+      "T1048"
+    ],
+    "owasp_llm_2026": [
+      "LLM01",
+      "LLM03"
+    ],
+    "framework_notes": {
+      "T1048": "inferred"
+    },
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Phase moved to Exploitation & Installation: Cursor asked the user before running the command, so exfiltration is not shown (same rule as CS0070)."
+  },
+  {
+    "case_id": "AML.CS0046",
+    "case_name": "Data Destruction via Indirect Prompt Injection Targeting Claude Computer-Use",
+    "case_type": "Exercise",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0046",
+    "source_reference": "MITRE ATLAS AML.CS0046 (Data Destruction via Indirect Prompt Injection Targeting Claude Computer-Use), data v2026.09",
+    "category": "D",
+    "sub_cluster": "Agent tool & API misuse",
+    "phase": "Actions on Objectives",
+    "outcome_status": "confirmed",
+    "atlas_technique_primary": "AML.T0101",
+    "atlas_techniques_supporting": [
+      "AML.T0051.001",
+      "AML.T0053",
+      "AML.T0054",
+      "AML.T0065",
+      "AML.T0068",
+      "AML.T0093"
+    ],
+    "attck_techniques": [
+      "T1059.004",
+      "T1485",
+      "T1027"
+    ],
+    "owasp_llm_2026": [
+      "LLM01",
+      "LLM03"
+    ],
+    "framework_notes": {},
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Injection in a PDF makes a computer-use agent run a destructive command."
+  },
+  {
+    "case_id": "AML.CS0055",
+    "case_name": "AI ClickFix: Hijacking Computer-Use Agents Using ClickFix",
+    "case_type": "Exercise",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0055",
+    "source_reference": "MITRE ATLAS AML.CS0055 (AI ClickFix: Hijacking Computer-Use Agents Using ClickFix), data v2026.09",
+    "category": "D",
+    "sub_cluster": "Agent tool & API misuse",
+    "phase": "Exploitation & Installation",
+    "outcome_status": "confirmed",
+    "atlas_technique_primary": "AML.T0100",
+    "atlas_techniques_supporting": [
+      "AML.T0016.002",
+      "AML.T0017",
+      "AML.T0051.001",
+      "AML.T0053",
+      "AML.T0078",
+      "AML.T0079",
+      "AML.T0112.000"
+    ],
+    "attck_techniques": [
+      "T1189",
+      "T1204",
+      "T1059"
+    ],
+    "owasp_llm_2026": [
+      "LLM01",
+      "LLM03"
+    ],
+    "framework_notes": {
+      "T1204": "inferred"
+    },
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Fake verify-you're-human page tricks a computer-use agent into running attacker code."
+  },
+  {
+    "case_id": "AML.CS0037",
+    "case_name": "Data Exfiltration via Agent Tools in Copilot Studio",
+    "case_type": "Exercise",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0037",
+    "source_reference": "MITRE ATLAS AML.CS0037 (Data Exfiltration via Agent Tools in Copilot Studio), data v2026.09",
+    "category": "D",
+    "sub_cluster": "Agent tool & API misuse",
+    "phase": "Actions on Objectives",
+    "outcome_status": "confirmed",
+    "atlas_technique_primary": "AML.T0086",
+    "atlas_techniques_supporting": [
+      "AML.T0006.003",
+      "AML.T0047",
+      "AML.T0051",
+      "AML.T0051.002",
+      "AML.T0065",
+      "AML.T0084.000",
+      "AML.T0084.001",
+      "AML.T0084.002",
+      "AML.T0085.000",
+      "AML.T0085.001",
+      "AML.T0093"
+    ],
+    "attck_techniques": [
+      "T1213",
+      "T1567"
+    ],
+    "owasp_llm_2026": [
+      "LLM01",
+      "LLM02",
+      "LLM03"
+    ],
+    "framework_notes": {
+      "T1213": "inferred",
+      "T1567": "inferred"
+    },
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Emailed injections make a customer-service agent leak CRM data."
+  },
+  {
+    "case_id": "AML.CS0061",
+    "case_name": "AI in the Middle: Web-Based AI Services as C2 Relays",
+    "case_type": "Exercise",
+    "source_url": "https://atlas.mitre.org/studies/AML.CS0061",
+    "source_reference": "MITRE ATLAS AML.CS0061 (AI in the Middle: Web-Based AI Services as C2 Relays), data v2026.09",
+    "category": "A",
+    "sub_cluster": "AI-assisted command & control",
+    "phase": "Command & Control",
+    "outcome_status": "confirmed",
+    "atlas_technique_primary": "AML.T0114",
+    "atlas_techniques_supporting": [
+      "AML.T0008.002",
+      "AML.T0037",
+      "AML.T0047",
+      "AML.T0050",
+      "AML.T0065",
+      "AML.T0068",
+      "AML.T0079",
+      "AML.T0086",
+      "AML.T0095"
+    ],
+    "attck_techniques": [
+      "T1102",
+      "T1071.001",
+      "T1041"
+    ],
+    "owasp_llm_2026": [],
+    "framework_notes": {},
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Public AI services' URL-fetching abused as a covert C2 relay; not an attack on the AI."
+  },
+  {
+    "case_id": "RPT-A01",
+    "case_name": "Deepfake video call used to authorize fraudulent transfers (Arup, Hong Kong)",
+    "case_type": "Incident",
+    "source_url": "https://abc17news.com/money/cnn-business-consumer/2024/05/16/british-engineering-giant-arup-revealed-as-25-million-deepfake-scam-victim/",
+    "source_reference": "Threat report: CNN / Hong Kong Police reporting on Arup (2024) (Deepfake video call used to authorize fraudulent transfers (Arup, Hong Kong))",
+    "category": "A",
+    "sub_cluster": "AI-assisted fraud & deepfakes",
+    "phase": "Delivery",
+    "outcome_status": "confirmed",
+    "atlas_technique_primary": "AML.T0088",
+    "atlas_techniques_supporting": [],
+    "attck_techniques": [
+      "T1566.004",
+      "T1656"
+    ],
+    "owasp_llm_2026": [],
+    "framework_notes": {
+      "AML.T0088": "inferred",
+      "T1566.004": "inferred",
+      "T1656": "inferred"
+    },
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Deepfaked video call delivered the lure; loss of HK$200M."
+  },
+  {
+    "case_id": "RPT-A02",
+    "case_name": "AI-generated voice messages impersonating senior US officials",
+    "case_type": "Incident",
+    "source_url": "https://www.ic3.gov/PSA/2025/PSA250515",
+    "source_reference": "Threat report: FBI/IC3 PSA I-051525-PSA (2025-05-15) (AI-generated voice messages impersonating senior US officials)",
+    "category": "A",
+    "sub_cluster": "AI-assisted fraud & deepfakes",
+    "phase": "Delivery",
+    "outcome_status": "confirmed",
+    "atlas_technique_primary": "AML.T0088",
+    "atlas_techniques_supporting": [],
+    "attck_techniques": [
+      "T1566.004",
+      "T1656",
+      "T1598"
+    ],
+    "owasp_llm_2026": [],
+    "framework_notes": {
+      "AML.T0088": "inferred",
+      "T1566.004": "inferred",
+      "T1656": "inferred",
+      "T1598": "inferred"
+    },
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "AI voice is what makes the lure believable, so the accelerated stage is Delivery."
+  },
+  {
+    "case_id": "RPT-A03",
+    "case_name": "AI-obfuscated SVG phishing campaign",
+    "case_type": "Incident",
+    "source_url": "https://www.microsoft.com/en-us/security/blog/2025/09/24/ai-vs-ai-detecting-an-ai-obfuscated-phishing-campaign/",
+    "source_reference": "Threat report: Microsoft Threat Intelligence blog (2025-09-24) (AI-obfuscated SVG phishing campaign)",
+    "category": "A",
+    "sub_cluster": "AI-assisted phishing",
+    "phase": "Weaponization",
+    "outcome_status": "attempted_failed",
+    "atlas_technique_primary": "AML.T0102",
+    "atlas_techniques_supporting": [],
+    "attck_techniques": [
+      "T1566.001",
+      "T1027"
+    ],
+    "owasp_llm_2026": [],
+    "framework_notes": {
+      "AML.T0102": "inferred",
+      "T1566.001": "inferred",
+      "T1027": "inferred"
+    },
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "AI used to build the obfuscated attachment; campaign blocked, outcome failed."
+  },
+  {
+    "case_id": "RPT-A04",
+    "case_name": "Experimental dropper querying a hosted model to regenerate itself (PROMPTFLUX)",
+    "case_type": "Exercise",
+    "source_url": "https://cloud.google.com/blog/topics/threat-intelligence/threat-actor-usage-of-ai-tools",
+    "source_reference": "Threat report: Google GTIG AI Threat Tracker (2025-11-05) (Experimental dropper querying a hosted model to regenerate itself (PROMPTFLUX))",
+    "category": "A",
+    "sub_cluster": "AI-assisted malware",
+    "phase": "Exploitation & Installation",
+    "outcome_status": "partial",
+    "atlas_technique_primary": "AML.T0102",
+    "atlas_techniques_supporting": [],
+    "attck_techniques": [
+      "T1027",
+      "T1059.005",
+      "T1102"
+    ],
+    "owasp_llm_2026": [],
+    "framework_notes": {
+      "AML.T0102": "inferred",
+      "T1027": "inferred",
+      "T1059.005": "inferred",
+      "T1102": "inferred"
+    },
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Kept A, labelled Exercise: GTIG calls it experimental with no victim compromise. Phase Exploitation & Installation (could also be C2)."
+  },
+  {
+    "case_id": "RPT-A05",
+    "case_name": "Threat actor used a chat assistant to help develop and support malware (ScopeCreep)",
+    "case_type": "Incident",
+    "source_url": "https://openai.com/index/disrupting-malicious-uses-of-ai-scopecreep",
+    "source_reference": "Threat report: OpenAI 'Disrupting malicious uses of AI' (2025-06) (Threat actor used a chat assistant to help develop and support malware (ScopeCreep))",
+    "category": "A",
+    "sub_cluster": "AI-assisted malware",
+    "phase": "Weaponization",
+    "outcome_status": "confirmed",
+    "atlas_technique_primary": "AML.T0102",
+    "atlas_techniques_supporting": [],
+    "attck_techniques": [
+      "T1195.002",
+      "T1071.001",
+      "T1562.001"
+    ],
+    "owasp_llm_2026": [],
+    "framework_notes": {
+      "AML.T0102": "inferred",
+      "T1195.002": "inferred",
+      "T1071.001": "inferred",
+      "T1562.001": "inferred"
+    },
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "Limited impact per OpenAI; the AI sped up malware development."
+  },
+  {
+    "case_id": "RPT-A06",
+    "case_name": "Low-skill actor used a chat assistant to build and sell ransomware (GTG-5004)",
+    "case_type": "Incident",
+    "source_url": "https://www.anthropic.com/news/detecting-countering-misuse-aug-2025",
+    "source_reference": "Threat report: Anthropic 'Detecting and countering misuse of AI' (2025-08) (Low-skill actor used a chat assistant to build and sell ransomware (GTG-5004))",
+    "category": "A",
+    "sub_cluster": "AI-assisted malware",
+    "phase": "Weaponization",
+    "outcome_status": "confirmed",
+    "atlas_technique_primary": "AML.T0102",
+    "atlas_techniques_supporting": [],
+    "attck_techniques": [
+      "T1486",
+      "T1490",
+      "T1587.001"
+    ],
+    "owasp_llm_2026": [],
+    "framework_notes": {
+      "AML.T0102": "inferred",
+      "T1486": "inferred",
+      "T1490": "inferred",
+      "T1587.001": "inferred"
+    },
+    "in_scope": true,
+    "non_adversarial": false,
+    "label_note": "No named victim; the observable is AI-built ransomware sold as a service."
+  }
+]
