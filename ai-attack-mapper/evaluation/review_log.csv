@@ -1,0 +1,41 @@
+case_id,reviewer,date,verdict,what_was_changed
+AML.CS0002,"Claude (claude-opus-5-5), project thread session",2026-10-02,faithful,No change.
+AML.CS0009,"Claude (claude-opus-5-5), project thread session",2026-10-02,faithful,No text change. Source-link entry reworded to match the alert's wording.
+AML.CS0015,"Claude (claude-opus-5-5), project thread session",2026-10-02,faithful,No change.
+AML.CS0023,"Claude (claude-opus-5-5), project thread session",2026-10-02,minor fix,Outcome label changed from partial to confirmed (source confirms active exploitation: reverse shells and miners found). Alert text unchanged.
+AML.CS0030,"Claude (claude-opus-5-5), project thread session",2026-10-02,faithful,No change.
+AML.CS0031,"Claude (claude-opus-5-5), project thread session",2026-10-02,minor fix,"Output: removed 'A user relying on this repository would have their supply chain compromised, and' (category-term leak); sentence now starts 'If a user loaded'. Matching source-link entry removed."
+AML.CS0034,"Claude (claude-opus-5-5), project thread session",2026-10-02,faithful,No change.
+AML.CS0042,"Claude (claude-opus-5-5), project thread session",2026-10-02,faithful,No change.
+AML.CS0043,"Claude (claude-opus-5-5), project thread session",2026-10-02,faithful,No text change. Removed one source-link entry for a phrase not in the alert.
+AML.CS0044,"Claude (claude-opus-5-5), project thread session",2026-10-02,faithful,No change.
+AML.CS0047,"Claude (claude-opus-5-5), project thread session",2026-10-02,minor fix,Output: 'through the extension's supply chain' -> 'through the extension's release' (category-term leak). Title: removed 'signed' (not in source).
+AML.CS0053,"Claude (claude-opus-5-5), project thread session",2026-10-02,minor fix,Input: 'through the compromised supply chain' -> 'through the package update'. Output: 'The supply chain attack succeeded.' -> 'The attack succeeded.' (category-term leak).
+AML.CS0056,"Claude (claude-opus-5-5), project thread session",2026-10-02,faithful,No change.
+AML.CS0057,"Claude (claude-opus-5-5), project thread session",2026-10-02,faithful,No change.
+AML.CS0068,"Claude (claude-opus-5-5), project thread session",2026-10-02,faithful,No change.
+AML.CS0069,"Claude (claude-opus-5-5), project thread session",2026-10-02,faithful,No change.
+AML.CS0070,"Claude (claude-opus-5-5), project thread session",2026-10-02,minor fix,Input: 'Palo Alto Networks Unit 42' -> 'Unit 42' (company name not in source).
+AML.CS0071,"Claude (claude-opus-5-5), project thread session",2026-10-02,faithful,No change.
+AML.CS0072,"Claude (claude-opus-5-5), project thread session",2026-10-02,faithful,No change.
+AML.CS0004,"Claude (claude-opus-5-5), project thread session",2026-10-10,minor fix,Removed two unsupported phrases from input: 'Over an extended period' and the sentence saying the pattern recurred across multiple registrations (not in source).
+AML.CS0032,"Claude (claude-opus-5-5), project thread session",2026-10-10,faithful,No change.
+AML.CS0059,"Claude (claude-opus-5-5), project thread session",2026-10-10,faithful,No change.
+AML.CS0035,"Claude (claude-opus-5-5), project thread session",2026-10-10,faithful,No change.
+AML.CS0026,"Claude (claude-opus-5-5), project thread session",2026-10-10,faithful,No change.
+AML.CS0060,"Claude (claude-opus-5-5), project thread session",2026-10-10,faithful,No change.
+AML.CS0016,"Claude (claude-opus-5-5), project thread session",2026-10-10,faithful,No change.
+AML.CS0020,"Claude (claude-opus-5-5), project thread session",2026-10-10,faithful,No change.
+AML.CS0063,"Claude (claude-opus-5-5), project thread session",2026-10-10,faithful,No change.
+AML.CS0067,"Claude (claude-opus-5-5), project thread session",2026-10-10,faithful,No change.
+AML.CS0045,"Claude (claude-opus-5-5), project thread session",2026-10-10,faithful,No change.
+AML.CS0046,"Claude (claude-opus-5-5), project thread session",2026-10-10,faithful,No change.
+AML.CS0055,"Claude (claude-opus-5-5), project thread session",2026-10-10,faithful,No change.
+AML.CS0037,"Claude (claude-opus-5-5), project thread session",2026-10-10,faithful,No change.
+AML.CS0061,"Claude (claude-opus-5-5), project thread session",2026-10-10,faithful,No change.
+RPT-A01,"Claude (claude-opus-5-5), project thread session",2026-10-10,faithful,No change.
+RPT-A02,"Claude (claude-opus-5-5), project thread session",2026-10-10,faithful,No change.
+RPT-A03,"Claude (claude-opus-5-5), project thread session",2026-10-10,faithful,No change.
+RPT-A04,"Claude (claude-opus-5-5), project thread session",2026-10-10,faithful,No change.
+RPT-A05,"Claude (claude-opus-5-5), project thread session",2026-10-10,faithful,No change.
+RPT-A06,"Claude (claude-opus-5-5), project thread session",2026-10-10,faithful,No change.
