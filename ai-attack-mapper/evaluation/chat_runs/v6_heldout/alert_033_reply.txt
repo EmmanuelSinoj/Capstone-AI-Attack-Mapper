@@ -1,0 +1,20 @@
+{
+  "alert_id": "33",
+  "victim": "AI agent with tools",
+  "ai_role": "agent that took the harmful action",
+  "via_registry_or_marketplace": false,
+  "rule_applied": 4,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "D",
+  "category_label": "D -- Agentic AI Threats",
+  "sub_cluster_or_theme": "Agent tool & API misuse",
+  "lifecycle_phase": "Actions on Objectives",
+  "framework_mapping": {
+    "attack": ["T1567", "T1190"],
+    "atlas": ["AML.T0086", "AML.T0053", "AML.T0093", "AML.T0051.001"],
+    "owasp_llm": ["LLM01", "LLM03", "LLM02"]
+  },
+  "confidence": 0.93,
+  "rationale": "Researchers used emailed prompt injections to make an autonomous Copilot Studio customer-service agent read a CSV knowledge source and query Salesforce through its get-records tool, then send the data to an attacker address with its own email tool. The agent plans and calls tools on its own and took the harmful action, and no supply-chain artifact or memory corruption is involved, so rule 4 is the first that fits."
+}

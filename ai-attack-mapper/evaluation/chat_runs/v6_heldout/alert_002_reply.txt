@@ -1,0 +1,20 @@
+{
+  "alert_id": "2",
+  "victim": "person or conventional organisation",
+  "ai_role": "attacker's instrument",
+  "via_registry_or_marketplace": false,
+  "rule_applied": 2,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "A",
+  "category_label": "A -- AI-Assisted Traditional Attacks",
+  "sub_cluster_or_theme": "AI-assisted command & control",
+  "lifecycle_phase": "Command & Control",
+  "framework_mapping": {
+    "attack": ["T1102", "T1071", "T1505.003"],
+    "atlas": ["AML.T0072", "AML.T0114", "AML.T0096"],
+    "owasp_llm": []
+  },
+  "confidence": 0.9,
+  "rationale": "The SesameOp backdoor abuses the OpenAI Assistants API as a covert two-way command-and-control relay against a conventional organisation, so AI is only the attacker's instrument and the victim is not an LLM application or agent. Rule 1 does not apply (no registry or marketplace delivery), and rule 2 is the first that fits, since a public AI service is used as a C2 channel."
+}

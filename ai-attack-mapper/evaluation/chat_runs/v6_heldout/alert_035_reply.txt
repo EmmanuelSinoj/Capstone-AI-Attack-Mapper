@@ -1,0 +1,20 @@
+{
+  "alert_id": "35",
+  "victim": "person or conventional organisation",
+  "ai_role": "attacker's instrument",
+  "via_registry_or_marketplace": false,
+  "rule_applied": 2,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "A",
+  "category_label": "A -- AI-Assisted Traditional Attacks",
+  "sub_cluster_or_theme": "AI-assisted fraud & deepfakes",
+  "lifecycle_phase": "Actions on Objectives",
+  "framework_mapping": {
+    "attack": ["T1684.001", "T1566"],
+    "atlas": ["AML.T0088", "AML.T0073"],
+    "owasp_llm": []
+  },
+  "confidence": 0.93,
+  "rationale": "Attackers used AI-generated deepfake video and voice of the CFO and colleagues to impersonate them and trick a finance employee into transferring HK$200 million. The victim is a person and organisation, and no AI system was attacked or compromised, so rule 2 (AI as the attacker's instrument) is the first rule that fits. The lifecycle phase is Actions on Objectives because the alert records the fraudulent transfers themselves."
+}

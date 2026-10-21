@@ -1,0 +1,20 @@
+{
+  "alert_id": "38",
+  "victim": "person or conventional organisation",
+  "ai_role": "attacker's instrument",
+  "via_registry_or_marketplace": false,
+  "rule_applied": 2,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "A",
+  "category_label": "A -- AI-Assisted Traditional Attacks",
+  "sub_cluster_or_theme": "AI-assisted malware",
+  "lifecycle_phase": "Weaponization",
+  "framework_mapping": {
+    "attack": ["T1027", "T1059", "T1587"],
+    "atlas": ["AML.T0102", "AML.T0096", "AML.T0123"],
+    "owasp_llm": []
+  },
+  "confidence": 0.9,
+  "rationale": "PROMPTFLUX is a VBScript dropper that calls the Gemini API at run time to generate obfuscated evasion code and rewrite itself, so the LLM is the attacker's instrument and the intended victim is a conventional endpoint. Per rule 2, malware calling an LLM API is category A, not an AI agent. The sample is experimental with self-update commented out and no victim compromise, so it is still being built, which places it at Weaponization rather than later phases."
+}

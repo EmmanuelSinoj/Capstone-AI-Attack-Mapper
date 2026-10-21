@@ -1,0 +1,20 @@
+{
+  "alert_id": "20",
+  "victim": "person or conventional organisation",
+  "ai_role": "attacker's instrument",
+  "via_registry_or_marketplace": false,
+  "rule_applied": 2,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "A",
+  "category_label": "A -- AI-Assisted Traditional Attacks",
+  "sub_cluster_or_theme": "AI-assisted fraud & deepfakes",
+  "lifecycle_phase": "Actions on Objectives",
+  "framework_mapping": {
+    "attack": ["T1684.001", "T1585", "T1078"],
+    "atlas": ["AML.T0088", "AML.T0073", "AML.T0021", "AML.T0015"],
+    "owasp_llm": []
+  },
+  "confidence": 0.8,
+  "rationale": "Attackers used face photos from a black market, animated into deepfake-style videos and injected via a virtual camera, to pass facial-recognition liveness checks and register fraudulent tax-system accounts. The victim is a conventional organisation (the tax system) and AI is the attacker's instrument for impersonation fraud, so rule 2 is the first that fits; the facial recognition service is the means of bypass, not the end victim, and the fraud itself (invoicing, about $77 million collected) places the event in Actions on Objectives."
+}

@@ -1,0 +1,20 @@
+{
+  "alert_id": "11",
+  "victim": "AI model, training data or AI infrastructure",
+  "ai_role": "target",
+  "via_registry_or_marketplace": false,
+  "rule_applied": 6,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "B",
+  "category_label": "B -- Attacks Against AI Systems",
+  "sub_cluster_or_theme": "Extraction, inversion & adversarial",
+  "lifecycle_phase": "Actions on Objectives",
+  "framework_mapping": {
+    "attack": ["T1585", "T1078"],
+    "atlas": ["AML.T0024.002", "AML.T0021", "AML.T0012"],
+    "owasp_llm": ["LLM02", "LLM06"]
+  },
+  "confidence": 0.88,
+  "rationale": "Three labs used about 24,000 fraudulent accounts and commercial proxies to send over 16 million capability-harvesting queries to Claude's inference API, then trained their own models on the responses. This is model extraction (distillation) with the model as the victim, so rule 6 is the first that fits. Rules 1 to 5 do not apply: no poisoned artifact was distributed, AI was not merely an attack tool, no agent memory or tool action was involved, and the harm is theft of model capability rather than leakage of application data."
+}

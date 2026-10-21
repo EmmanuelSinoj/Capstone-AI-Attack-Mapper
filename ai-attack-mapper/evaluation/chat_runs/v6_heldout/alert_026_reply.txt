@@ -1,0 +1,20 @@
+{
+  "alert_id": "26",
+  "victim": "LLM application, its data or account",
+  "ai_role": "target",
+  "via_registry_or_marketplace": false,
+  "rule_applied": 5,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "C",
+  "category_label": "C -- LLM/GenAI Application Attacks",
+  "sub_cluster_or_theme": "Plugin RCE & insecure output handling",
+  "lifecycle_phase": "Actions on Objectives",
+  "framework_mapping": {
+    "attack": ["T1190", "T1059", "T1552", "T1499"],
+    "atlas": ["AML.T0051.000", "AML.T0050", "AML.T0055", "AML.T0034"],
+    "owasp_llm": ["LLM01", "LLM10", "LLM02", "LLM06"]
+  },
+  "confidence": 0.8,
+  "rationale": "The actor used direct prompt injection against MathGPT, a public LLM app that turns user text into Python and runs it with no agent planning or tool-calling, so the injected output was executed directly (RCE via insecure output handling) to leak the GPT-3 API key and hang the app. No supply-chain artifact, AI-as-instrument attack, or autonomous agent action applies, so rule 5 is the first that fits; confidence is below 0.9 because the credential theft and cost/DoS aspects could also support the 'LLM service abuse & cost' theme."
+}

@@ -1,0 +1,20 @@
+{
+  "alert_id": "31",
+  "victim": "AI agent with tools",
+  "ai_role": "agent that took the harmful action",
+  "via_registry_or_marketplace": false,
+  "rule_applied": 4,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "D",
+  "category_label": "D -- Agentic AI Threats",
+  "sub_cluster_or_theme": "Agent tool & API misuse",
+  "lifecycle_phase": "Actions on Objectives",
+  "framework_mapping": {
+    "attack": ["T1059", "T1485", "T1027"],
+    "atlas": ["AML.T0053", "AML.T0101", "AML.T0051.001", "AML.T0054"],
+    "owasp_llm": ["LLM01", "LLM03"]
+  },
+  "confidence": 0.9,
+  "rationale": "A hidden indirect prompt injection in a PDF, using jailbreak framing and base64/rot13 obfuscation, made a Computer Use agent decode the payload and run a destructive command through its bash tool, wiping the filesystem. The agent's tool call caused the harm and no registry or marketplace was involved (rule 1 does not apply). Memory corruption (rule 3) does not apply either, so rule 4 is the first that fits."
+}

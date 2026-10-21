@@ -1,0 +1,20 @@
+{
+  "alert_id": "25",
+  "victim": "LLM application, its data or account",
+  "ai_role": "target",
+  "via_registry_or_marketplace": false,
+  "rule_applied": 5,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "C",
+  "category_label": "C -- LLM/GenAI Application Attacks",
+  "sub_cluster_or_theme": "Plugin RCE & insecure output handling",
+  "lifecycle_phase": "Actions on Objectives",
+  "framework_mapping": {
+    "attack": ["T1539", "T1185"],
+    "atlas": ["AML.T0077", "AML.T0051.000", "AML.T0113"],
+    "owasp_llm": ["LLM10", "LLM01"]
+  },
+  "confidence": 0.85,
+  "rationale": "A crafted prompt made the Lena customer-service chatbot output attacker-controlled HTML/JavaScript that was stored in the chat history and rendered unsanitized in the human agent's browser, stealing the session cookie via an image-request query parameter. The victim is the LLM application and its account/session data, with no autonomous agent tool action, so rule 5 (injected output the application renders or executes) is the first rule that fits."
+}

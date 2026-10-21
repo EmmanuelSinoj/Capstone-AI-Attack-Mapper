@@ -1,0 +1,38 @@
+{
+  "frozen": {
+    "backend": "chat",
+    "model": "claude-chat-sonnet-5.5",
+    "prompt_version": "v6",
+    "prompt_fingerprint": "81ed96bf5722",
+    "chosen_from_dev_run": "pilot_20261020T074948_chat_claude-chat-sonnet-5.5_v6_dev",
+    "frozen_at": "2026-10-20T08:27:08.686206+00:00"
+  },
+  "heldout_runs": [
+    {
+      "run_id": "pilot_20261020T164821_chat_claude-chat-sonnet-5.5_v6_heldout",
+      "at": "20261020T164821",
+      "rerun_reason": "manual chat import"
+    },
+    {
+      "run_id": "pilot_20261021T182711_claude_claude-haiku-5-5_v6_heldout",
+      "at": "20261021T182711",
+      "rerun_reason": "Production model check: Haiku 5.5, reported separately; Sonnet 5.5 held-out stays the primary result"
+    },
+    {
+      "run_id": "pilot_20261021T183555_claude_claude-haiku-5-5_v6_heldout",
+      "at": "20261021T183555",
+      "rerun_reason": "Production model check: Haiku 5.5, reported separately; Sonnet 5.5 held-out stays the primary result"
+    }
+  ],
+  "secondary": [
+    {
+      "backend": "claude",
+      "model": "claude-haiku-5-5",
+      "prompt_version": "v6",
+      "prompt_fingerprint": "81ed96bf5722",
+      "chosen_from_dev_run": "pilot_20261021T180359_claude_claude-haiku-5-5_v6_dev",
+      "reason": "Production model: ties Sonnet 5.5 on dev accuracy and consistency at about 10x lower cost; reported separately from the primary Sonnet 5.5 held-out",
+      "frozen_at": "2026-10-21T18:27:02.614260+00:00"
+    }
+  ]
+}

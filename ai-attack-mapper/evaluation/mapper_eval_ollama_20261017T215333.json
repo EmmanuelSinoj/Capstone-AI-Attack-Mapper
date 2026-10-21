@@ -1,0 +1,76 @@
+{
+  "ollama": {
+    "rows": [
+      {
+        "name": "Alert 1 -- live, prompt injection",
+        "alert_id": "test-1",
+        "status": "invalid_output",
+        "error": "missing required field(s): ['alert_id', 'in_scope', 'rationale']"
+      },
+      {
+        "name": "Alert 2 -- synthetic, from CS0053 (npm supply chain)",
+        "alert_id": "test-2",
+        "elapsed_s": 6.21,
+        "status": "ok",
+        "predicted_category": null,
+        "expected_category": "B",
+        "category_match": false,
+        "predicted_adversarial": null,
+        "expected_adversarial": true,
+        "adversarial_match": false,
+        "confidence_abs_error": null,
+        "attack_precision": 1.0,
+        "attack_recall": 1.0,
+        "atlas_precision": 0.0,
+        "atlas_recall": 0.0,
+        "owasp_llm_precision": 0.0,
+        "owasp_llm_recall": 0.0,
+        "severity": "Informational",
+        "severity_rationale": "Alert is out of taxonomy scope; no severity applies.",
+        "rationale": "The alert involves a supply chain attack where a package ran clean on npm for months before adding code that BCCs every outgoing email to an attacker-controlled address. This is a classic example of a supply chain attack, which is a category B attack. The initial compromise occurred via the registry (npm), and the attack is further evidenced by the presence of AI tool invocation and code injection (T1195 and T1565.003 inferred/adjacent). The confidence is moderate (0.8) due to the lack of explicit evidence for agent tool usage in the output, but the overall attack pattern and supply chain compromise indicate a high likelihood of AI tool invocation."
+      },
+      {
+        "name": "Alert 3 -- synthetic, from CS0072 (memory poisoning via link)",
+        "alert_id": "test-3",
+        "elapsed_s": 5.57,
+        "status": "ok",
+        "predicted_category": "D",
+        "expected_category": "D",
+        "category_match": true,
+        "predicted_adversarial": true,
+        "expected_adversarial": true,
+        "adversarial_match": true,
+        "confidence_abs_error": 0.0,
+        "attack_precision": 0.0,
+        "attack_recall": 1.0,
+        "atlas_precision": 0.0,
+        "atlas_recall": 0.0,
+        "owasp_llm_precision": 0.0,
+        "owasp_llm_recall": 0.0,
+        "severity": "High",
+        "severity_rationale": "base severity for category D / 'Memory & long-context corruption' is High",
+        "rationale": "The attack corrupts the AI assistant's persistent memory, biasing its recommendations, indicating an agent is involved. The crafted link invokes the AI assistant's tool, executing an AI agent tool invocation. The OWASP LLM03 Excessive Agency applies as the agent's persistent memory is manipulated."
+      },
+      {
+        "name": "Alert 4 -- synthetic, from CS0068 (autonomous eval agents, no attacker)",
+        "alert_id": "test-4",
+        "status": "invalid_output",
+        "error": "missing required field(s) for in_scope=true alert: ['adversarial']"
+      }
+    ],
+    "summary": {
+      "backend": "ollama",
+      "total_alerts": 4,
+      "structured_output_reliability": 0.5,
+      "category_accuracy": 0.5,
+      "adversarial_accuracy": 0.5,
+      "mean_confidence_abs_error": 0.0,
+      "attack_mean_precision": 0.5,
+      "attack_mean_recall": 1.0,
+      "atlas_mean_precision": 0.0,
+      "atlas_mean_recall": 0.0,
+      "owasp_llm_mean_precision": 0.0,
+      "owasp_llm_mean_recall": 0.0
+    }
+  }
+}

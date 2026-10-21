@@ -1,0 +1,20 @@
+{
+  "alert_id": "18",
+  "victim": "person or conventional organisation",
+  "ai_role": "agent that took the harmful action",
+  "via_registry_or_marketplace": false,
+  "rule_applied": 4,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "D",
+  "category_label": "D -- Agentic AI Threats",
+  "sub_cluster_or_theme": "Autonomous offensive operations",
+  "lifecycle_phase": "Reconnaissance",
+  "framework_mapping": {
+    "attack": ["T1595", "T1190", "T1588"],
+    "atlas": ["AML.T0117", "AML.T0116", "AML.T0124"],
+    "owasp_llm": []
+  },
+  "confidence": 0.9,
+  "rationale": "A Hermes agent driven by DeepSeek, with terminal and MCP tool access, autonomously searched FOFA for targets, obtained public exploits, ran scans, and switched from Langflow to n8n after the first approach failed. The victims are conventional internet-exposed systems and the AI agent itself carried out the offensive operation, so rule 4 is the first that fits. The activity centers on target discovery and scanning, with no access achieved, which makes Reconnaissance the best lifecycle phase."
+}

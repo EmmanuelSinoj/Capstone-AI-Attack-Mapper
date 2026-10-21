@@ -1,0 +1,20 @@
+{
+  "alert_id": "37",
+  "victim": "person or conventional organisation",
+  "ai_role": "attacker's instrument",
+  "via_registry_or_marketplace": false,
+  "rule_applied": 2,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "A",
+  "category_label": "A -- AI-Assisted Traditional Attacks",
+  "sub_cluster_or_theme": "AI-assisted phishing",
+  "lifecycle_phase": "Delivery",
+  "framework_mapping": {
+    "attack": ["T1566", "T1027", "T1078"],
+    "atlas": ["AML.T0052", "AML.T0047", "AML.T0123"],
+    "owasp_llm": []
+  },
+  "confidence": 0.85,
+  "rationale": "A credential-phishing campaign delivered an SVG attachment disguised as a PDF, with LLM-assisted obfuscated code and a compromised business email account used to send it. The victims are people and organisations, and AI only helped produce the attack, so rule 2 is the first that fits and no LLM application is involved. Confidence is slightly below 0.9 because the evidence of LLM generation is an assessment rather than a confirmed fact."
+}

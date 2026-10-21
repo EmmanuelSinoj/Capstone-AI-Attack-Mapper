@@ -1,0 +1,20 @@
+{
+  "alert_id": "10",
+  "victim": "AI agent with tools",
+  "ai_role": "target",
+  "via_registry_or_marketplace": true,
+  "rule_applied": 1,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "B",
+  "category_label": "B -- Attacks Against AI Systems",
+  "sub_cluster_or_theme": "AI supply chain",
+  "lifecycle_phase": "Actions on Objectives",
+  "framework_mapping": {
+    "attack": ["T1195", "T1567", "T1585"],
+    "atlas": ["AML.T0010.005", "AML.T0109", "AML.T0115", "AML.T0086"],
+    "owasp_llm": ["LLM04", "LLM02"]
+  },
+  "confidence": 0.93,
+  "rationale": "The malicious `postmark-mcp` server was namesquatted on npm, built up trust through legitimate releases, and then rugpulled via update version 1.0.16, so it reached victims through a trusted package registry. Rule 1 is the first that fits, and it holds even though AI agents run the malicious tool later and the BCC exfiltration happens through their tool calls."
+}

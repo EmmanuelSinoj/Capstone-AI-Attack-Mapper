@@ -1,0 +1,21 @@
+{
+  "alert_id": "4",
+  "victim": "AI model, training data or AI infrastructure",
+  "ai_role": "target",
+  "via_registry_or_marketplace": true,
+  "rule_applied": 1,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "B",
+  "category_label": "B -- Attacks Against AI Systems",
+  "sub_cluster_or_theme": "AI supply chain",
+  "lifecycle_phase": "Delivery",
+  "framework_mapping": {
+    "attack": ["T1027", "T1195"],
+    "atlas": ["AML.T0115", "AML.T0020", "AML.T0059"],
+    "owasp_llm": []
+  },
+  "confidence": 0.62,
+  "rationale": "An attacker used the metamorphic tool 'metame' to mutate ransomware samples and uploaded them to a popular virus-sharing platform, poisoning the data that vendors' ML classifiers use to identify the ransomware family. Rule 1 is the first that fits because the poisoned artifacts reached the victims through a trusted sharing platform. Confidence is moderate because rule 6 (training-data poisoning of an ML model) is also plausible, and the platform is a malware repository rather than a conventional model or package registry.",
+  "notes_on_ambiguity": null
+}

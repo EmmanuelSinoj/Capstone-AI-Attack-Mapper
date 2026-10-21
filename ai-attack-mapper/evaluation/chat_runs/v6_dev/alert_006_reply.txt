@@ -1,0 +1,20 @@
+{
+  "alert_id": "6",
+  "victim": "AI model, training data or AI infrastructure",
+  "ai_role": "target",
+  "via_registry_or_marketplace": true,
+  "rule_applied": 1,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "B",
+  "category_label": "B -- Attacks Against AI Systems",
+  "sub_cluster_or_theme": "AI supply chain",
+  "lifecycle_phase": "Exploitation & Installation",
+  "framework_mapping": {
+    "attack": ["T1195", "T1552", "T1048"],
+    "atlas": ["AML.T0010.001", "AML.T0115", "AML.T0055"],
+    "owasp_llm": ["LLM04"]
+  },
+  "confidence": 0.92,
+  "rationale": "A malicious `torchtriton` package was published to PyPI and pulled in by pip via dependency confusion, compromising the PyTorch-nightly AI software dependency chain. Rule 1 applies because the poisoned artifact reached victims through a package registry, and the later credential and file exfiltration over DNS does not change the supply-chain classification."
+}

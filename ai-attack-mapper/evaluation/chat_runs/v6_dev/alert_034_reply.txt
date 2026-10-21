@@ -1,0 +1,20 @@
+{
+  "alert_id": "34",
+  "victim": "person or conventional organisation",
+  "ai_role": "attacker's instrument",
+  "via_registry_or_marketplace": false,
+  "rule_applied": 2,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "A",
+  "category_label": "A -- AI-Assisted Traditional Attacks",
+  "sub_cluster_or_theme": "AI-assisted command & control",
+  "lifecycle_phase": "Command & Control",
+  "framework_mapping": {
+    "attack": ["T1102", "T1071", "T1567"],
+    "atlas": ["AML.T0072", "AML.T0114"],
+    "owasp_llm": []
+  },
+  "confidence": 0.93,
+  "rationale": "A custom implant on a compromised victim machine abuses public AI web assistants (Grok, Copilot) as a covert C2 relay, exfiltrating data via fetch URL parameters and receiving commands in the summarized response. The victim is a conventional system and the AI service is only the attacker's instrument, so rule 2 is the first that fits, with no registry or memory/agent-tool involvement."
+}

@@ -1,0 +1,20 @@
+{
+  "alert_id": "27",
+  "victim": "LLM application, its data or account",
+  "ai_role": "target",
+  "via_registry_or_marketplace": false,
+  "rule_applied": 5,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "C",
+  "category_label": "C -- LLM/GenAI Application Attacks",
+  "sub_cluster_or_theme": "Conversation & hidden-context compromise",
+  "lifecycle_phase": "Actions on Objectives",
+  "framework_mapping": {
+    "attack": ["T1598"],
+    "atlas": ["AML.T0051.001", "AML.T0057", "AML.T0065"],
+    "owasp_llm": ["LLM01", "LLM02"]
+  },
+  "confidence": 0.68,
+  "rationale": "A hidden zero-font-size prompt on a web page was ingested by Bing Chat (an LLM application with page-viewing access, not an autonomous tool-calling agent) and caused it to solicit the user's PII and push a link encoding that PII, so the victim is the LLM application and its user session, matching rule 5 as the first rule that fits (no registry/supply chain, AI not the attacker's instrument, no memory corruption, no agent tool action). Confidence is moderate because the theme could also fit 'Prompt & memory manipulation' and the PII-solicitation goal overlaps with phishing for information."
+}

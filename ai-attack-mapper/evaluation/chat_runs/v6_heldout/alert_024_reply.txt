@@ -1,0 +1,20 @@
+{
+  "alert_id": "24",
+  "victim": "LLM application, its data or account",
+  "ai_role": "target",
+  "via_registry_or_marketplace": false,
+  "rule_applied": 5,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "C",
+  "category_label": "C -- LLM/GenAI Application Attacks",
+  "sub_cluster_or_theme": "RAG poisoning & data extraction",
+  "lifecycle_phase": "Actions on Objectives",
+  "framework_mapping": {
+    "attack": ["T1566", "T1565"],
+    "atlas": ["AML.T0071", "AML.T0070", "AML.T0066", "AML.T0051.001"],
+    "owasp_llm": ["LLM01", "LLM09", "LLM07"]
+  },
+  "confidence": 0.85,
+  "rationale": "A phishing email was auto-ingested into Copilot's retrieval store, supplying false bank details as a retrieved entry and carrying embedded instructions to suppress other sources and fake a trustworthy citation. The victim is an LLM application and its retrieval data with no autonomous agent tool action, and no registry delivery is involved, so rule 5 is the first that fits (rule 3 does not apply since this is retrieval poisoning, not agent memory corruption)."
+}

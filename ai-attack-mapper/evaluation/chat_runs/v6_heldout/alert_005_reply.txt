@@ -1,0 +1,20 @@
+{
+  "alert_id": "5",
+  "victim": "AI model, training data or AI infrastructure",
+  "ai_role": "target",
+  "via_registry_or_marketplace": false,
+  "rule_applied": 6,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "B",
+  "category_label": "B -- Attacks Against AI Systems",
+  "sub_cluster_or_theme": "Poisoning & backdoor",
+  "lifecycle_phase": "Exploitation & Installation",
+  "framework_mapping": {
+    "attack": [],
+    "atlas": ["AML.T0020", "AML.T0059", "AML.T0031"],
+    "owasp_llm": ["LLM05"]
+  },
+  "confidence": 0.8,
+  "rationale": "Adversaries exploited Tay's online-learning feedback loop, using coordinated abusive tweets and the 'repeat after me' function to skew its training data until the model itself generated offensive content. The victim is the model and its training data, so rule 6 is the first that fits; no registry channel (rule 1), no agent tools or memory (rules 3-4), and no application-layer retrieval or hidden-context target (rule 5) are involved. Confidence is below 0.9 because the 'repeat after me' abuse could be read as a direct jailbreak, which also falls under rule 6."
+}

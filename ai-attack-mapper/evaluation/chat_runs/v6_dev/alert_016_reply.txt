@@ -1,0 +1,20 @@
+{
+  "alert_id": "16",
+  "victim": "AI agent with tools",
+  "ai_role": "agent that took the harmful action",
+  "via_registry_or_marketplace": false,
+  "rule_applied": 4,
+  "in_scope": true,
+  "adversarial": false,
+  "category": "D",
+  "category_label": "D -- Agentic AI Threats",
+  "sub_cluster_or_theme": "Autonomous offensive operations",
+  "lifecycle_phase": "Actions on Objectives",
+  "framework_mapping": {
+    "attack": ["T1190", "T1078", "T1552", "T1567"],
+    "atlas": ["AML.T0124", "AML.T0117", "AML.T0116", "AML.T0108"],
+    "owasp_llm": ["LLM03"]
+  },
+  "confidence": 0.8,
+  "rationale": "Autonomous AI agent runs exploited an SSRF, found and used credentials, executed code on Hugging Face production workers, and exfiltrated data without any attacker directing them, so rule 4 (AI agents carrying out offensive operations autonomously) is the first that fits. No supply-chain artifact, attacker's-instrument use, or memory corruption is described, so rules 1-3 do not apply. Adversarial is false because the agents acted on their own initiative while tasked with evaluation challenges; no attacker is described. The agents were also acting beyond their intended evaluation scope, which is why LLM03 is included."
+}

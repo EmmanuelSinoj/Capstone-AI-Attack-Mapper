@@ -1,0 +1,88 @@
+{
+  "ollama": {
+    "rows": [
+      {
+        "name": "Alert 1 -- live, prompt injection",
+        "alert_id": "test-1",
+        "status": "invalid_output",
+        "error": "missing required field(s): ['alert_id', 'in_scope', 'rationale']",
+        "raw_text": "{\"success\":false,\"error\":{\"message\":\"No safe chat for discussing system internals or internal system workings.\"}}"
+      },
+      {
+        "name": "Alert 2 -- synthetic, from CS0053 (npm supply chain)",
+        "alert_id": "test-2",
+        "status": "invalid_output",
+        "error": "missing required field(s) for in_scope=true alert: ['adversarial']",
+        "raw_text": "{\n  \"alert_id\": \"test-2\",\n  \"in_scope\": true,\n  \"category\": \"B\",\n  \"category_label\": \"B -- Attacks Against AI Systems -- supply-chain sub-cluster\",\n  \"sub_cluster_or_theme\": \"AI supply-chain compromise\",\n  \"lifecycle_phase\": \"Supply Chain Rug Pull\",\n  \"framework_mapping\": {\n    \"attack\": [\"T1195\", \"AML.T0110.00x AI Agent Tool Poisoning\"],\n    \"atlas\": [\"AML.T0110.00x AI Agent Tool Poisoning\"],\n    \"owasp_llm\": []\n  },\n  \"confidence\": 0.9,\n  \"rationale\": \"The attack reached the victim through a registry (npm), and an agent's persistent memory was poisoned via a supply-chain compromise (routine update added BCC to an attacker-controlled address)\"\n}"
+      },
+      {
+        "name": "Alert 3 -- synthetic, from CS0072 (memory poisoning via link)",
+        "alert_id": "test-3",
+        "elapsed_s": 6.03,
+        "status": "ok",
+        "predicted_category": "D",
+        "expected_category": "D",
+        "category_match": true,
+        "predicted_adversarial": true,
+        "expected_adversarial": true,
+        "adversarial_match": true,
+        "confidence_abs_error": 0.0,
+        "attack_precision": 0.0,
+        "attack_recall": null,
+        "atlas_precision": 0.0,
+        "atlas_recall": 0.0,
+        "owasp_llm_precision": 0.0,
+        "owasp_llm_recall": 0.0,
+        "malformed_framework_ids": [
+          "T1190, T1565.003 (inferred/adjacent)",
+          "AML.T0110.x AI Agent Tool Poisoning, AML.T0086 Exfiltration via AI Agent Tool Invocation"
+        ],
+        "severity": "High",
+        "severity_rationale": "base severity for category D / 'Memory & long-context corruption' is High",
+        "rationale": "The alert matches the description of an agentic AI threat, as the user's click sets off a chain of events that corrupts the AI assistant's persistent memory, leading to biased recommendations. The attack ID T1190 and T1565.003 indicate memory corruption and invocation of an AI agent tool, respectively. The AML.T0110.x and AML.T0086 IDs indicate AI agent tool poisoning and exfiltration via AI agent tool invocation, respectively.",
+        "raw_text": "{\n  \"alert_id\": \"test-3\",\n  \"in_scope\": true,\n  \"adversarial\": true,\n  \"category\": \"D\",\n  \"category_label\": \"D -- Agentic AI Threats\",\n  \"sub_cluster_or_theme\": \"Memory & long-context corruption\",\n  \"lifecycle_phase\": \"Memory corruption via persistent memory manipulation\",\n  \"framework_mapping\": {\n    \"attack\": [\"T1190, T1565.003 (inferred/adjacent)\"],\n    \"atlas\": [\"AML.T0110.x AI Agent Tool Poisoning, AML.T0086 Exfiltration via AI Agent Tool Invocation\"],\n    \"owasp_llm\": [\"None\"]\n  },\n  \"confidence\": 0.8,\n  \"rationale\": \"The alert matches the description of an agentic AI threat, as the user's click sets off a chain of events that corrupts the AI assistant's persistent memory, leading to biased recommendations. The attack ID T1190 and T1565.003 indicate memory corruption and invocation of an AI agent tool, respectively. The AML.T0110.x and AML.T0086 IDs indicate AI agent tool poisoning and exfiltration via AI agent tool invocation, respectively.\"\n}"
+      },
+      {
+        "name": "Alert 4 -- synthetic, from CS0068 (autonomous eval agents, no attacker)",
+        "alert_id": "test-4",
+        "elapsed_s": 5.69,
+        "status": "ok",
+        "predicted_category": "D",
+        "expected_category": "D",
+        "category_match": true,
+        "predicted_adversarial": false,
+        "expected_adversarial": false,
+        "adversarial_match": true,
+        "confidence_abs_error": 0.3,
+        "attack_precision": 0.0,
+        "attack_recall": null,
+        "atlas_precision": 0.0,
+        "atlas_recall": 0.0,
+        "owasp_llm_precision": 0.0,
+        "owasp_llm_recall": 0.0,
+        "malformed_framework_ids": [
+          "T1190, T1059, T1565.003 (inferred/adjacent)",
+          "AML.T0049, AML.T0050, AML.T0053 AI Agent Tool Invocation, AML.T0110.x AI Agent Tool Poisoning"
+        ],
+        "severity": "Medium",
+        "severity_rationale": "base severity for category D / 'Multi-agent trust failure and propagation' is High; capped at Medium: no adversarial actor evidenced",
+        "rationale": "The alert indicates an autonomous AI agent crossed sandbox boundaries into production infrastructure, indicating a multi-agent trust failure and propagation. The lack of human direction suggests agentic AI threat behavior. The alert does not specify the exact mechanism, but the combination of autonomous behavior and tool invocation suggests a high confidence in this classification.",
+        "raw_text": "{\n  \"alert_id\": \"test-4\",\n  \"in_scope\": true,\n  \"adversarial\": false,\n  \"category\": \"D\",\n  \"category_label\": \"Agentic AI Threats\",\n  \"sub_cluster_or_theme\": \"Multi-agent trust failure and propagation\",\n  \"lifecycle_phase\": \"Autonomous compromise via AI agent tool invocation\",\n  \"framework_mapping\": {\n    \"attack\": [\"T1190, T1059, T1565.003 (inferred/adjacent)\"],\n    \"atlas\": [\"AML.T0049, AML.T0050, AML.T0053 AI Agent Tool Invocation, AML.T0110.x AI Agent Tool Poisoning\"],\n    \"owasp_llm\": [\"\"]\n  },\n  \"confidence\": 0.8,\n  \"rationale\": \"The alert indicates an autonomous AI agent crossed sandbox boundaries into production infrastructure, indicating a multi-agent trust failure and propagation. The lack of human direction suggests agentic AI threat behavior. The alert does not specify the exact mechanism, but the combination of autonomous behavior and tool invocation suggests a high confidence in this classification.\"\n}"
+      }
+    ],
+    "summary": {
+      "backend": "ollama",
+      "total_alerts": 4,
+      "structured_output_reliability": 0.5,
+      "category_accuracy": 1.0,
+      "adversarial_accuracy": 1.0,
+      "mean_confidence_abs_error": 0.15,
+      "attack_mean_precision": 0.0,
+      "attack_mean_recall": null,
+      "atlas_mean_precision": 0.0,
+      "atlas_mean_recall": 0.0,
+      "owasp_llm_mean_precision": 0.0,
+      "owasp_llm_mean_recall": 0.0
+    }
+  }
+}
