@@ -1,0 +1,20 @@
+{
+  "alert_id": "9",
+  "victim": "person or conventional organisation",
+  "ai_role": "agent that took the harmful action",
+  "via_registry_or_marketplace": true,
+  "rule_applied": 1,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "B",
+  "category_label": "B -- Attacks Against AI Systems",
+  "sub_cluster_or_theme": "AI supply chain",
+  "lifecycle_phase": "Delivery",
+  "framework_mapping": {
+    "attack": ["T1195", "T1552", "T1485"],
+    "atlas": ["AML.T0010.001", "AML.T0115", "AML.T0053"],
+    "owasp_llm": ["LLM04", "LLM03", "LLM01"]
+  },
+  "confidence": 0.85,
+  "rationale": "A malicious commit, made with a leaked over-scoped GitHub token, was shipped in the official Amazon Q Developer VS Code extension release v1.84.0, so the poisoned artifact reached users through a trusted distribution channel (rule 1 applies first, even though an agent with tools was the intended payload executor). The failed execution caused by a syntax error does not change the classification, since the compromised release was still delivered."
+}

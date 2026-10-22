@@ -1,0 +1,4 @@
+requests>=2.31
+streamlit>=1.38
+pandas>=2.2
+pyyaml>=6.0  # only needed if you rebuild data/framework_reference_data.json yourself (scripts/build_framework_reference.py)

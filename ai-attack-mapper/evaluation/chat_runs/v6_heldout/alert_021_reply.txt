@@ -1,0 +1,20 @@
+{
+  "alert_id": "21",
+  "victim": "LLM application, its data or account",
+  "ai_role": "target",
+  "via_registry_or_marketplace": false,
+  "rule_applied": 6,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "B",
+  "category_label": "B -- Attacks Against AI Systems",
+  "sub_cluster_or_theme": "Extraction, inversion & adversarial",
+  "lifecycle_phase": "Actions on Objectives",
+  "framework_mapping": {
+    "attack": ["T1566"],
+    "atlas": ["AML.T0015", "AML.T0043"],
+    "owasp_llm": []
+  },
+  "confidence": 0.62,
+  "rationale": "Phishing operators manually altered brand logos (blurring, cropping, stretching, swapping) to evade the image classifier that detects brand impersonation by visual similarity, which is an adversarial-example attack on an ML model. Rule 2 (AI as the attacker's instrument) does not fit because the AI is the target, and rule 5 does not fit because no LLM application is involved, so rule 6 is the first that applies. The victim field should read 'AI model, training data or AI infrastructure' rather than the LLM application value shown above, and OWASP LLM is left empty because the classifier is a non-LLM ML model. Confidence is moderate because the credential-phishing delivery could also support an A reading."
+}

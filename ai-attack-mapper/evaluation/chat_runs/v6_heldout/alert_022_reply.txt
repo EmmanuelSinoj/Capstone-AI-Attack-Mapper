@@ -1,0 +1,20 @@
+{
+  "alert_id": "22",
+  "victim": "LLM application, its data or account",
+  "ai_role": "target",
+  "via_registry_or_marketplace": false,
+  "rule_applied": 5,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "C",
+  "category_label": "C -- LLM/GenAI Application Attacks",
+  "sub_cluster_or_theme": "RAG poisoning & data extraction",
+  "lifecycle_phase": "Actions on Objectives",
+  "framework_mapping": {
+    "attack": ["T1567", "T1566"],
+    "atlas": ["AML.T0070", "AML.T0051.001", "AML.T0077", "AML.T0057"],
+    "owasp_llm": ["LLM01", "LLM02", "LLM09", "LLM10"]
+  },
+  "confidence": 0.82,
+  "rationale": "A malicious email was ingested into Copilot's RAG store, retrieved as context, and its hidden instructions made Copilot collect accessible M365 data and leak it through an auto-fetched Markdown image URL. The victim is the LLM application and its data, and Copilot's search was part of the application's own retrieval flow rather than an autonomous tool-calling agent action, so rule 5 is the first that fits. Rule 4 was a plausible alternative, which is why confidence is below 0.9."
+}

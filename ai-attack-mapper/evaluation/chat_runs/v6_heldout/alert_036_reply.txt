@@ -1,0 +1,20 @@
+{
+  "alert_id": "36",
+  "victim": "person or conventional organisation",
+  "ai_role": "attacker's instrument",
+  "via_registry_or_marketplace": false,
+  "rule_applied": 2,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "A",
+  "category_label": "A -- AI-Assisted Traditional Attacks",
+  "sub_cluster_or_theme": "AI-assisted fraud & deepfakes",
+  "lifecycle_phase": "Delivery",
+  "framework_mapping": {
+    "attack": ["T1566", "T1684.001", "T1598"],
+    "atlas": ["AML.T0088", "AML.T0073", "AML.T0052"],
+    "owasp_llm": []
+  },
+  "confidence": 0.8,
+  "rationale": "Attackers used AI-generated voice clones and texts impersonating senior officials to build trust and send a credential-harvesting link, so AI is the attacker's instrument against people (rule 2), with no registry, memory, agent, or LLM-application victim to trigger an earlier rule. The voice-clone impersonation delivered by message is the defining event, so AI-assisted fraud & deepfakes fits better than plain AI-assisted phishing, though the malicious link makes phishing a plausible alternative."
+}

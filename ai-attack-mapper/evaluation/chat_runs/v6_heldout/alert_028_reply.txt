@@ -1,0 +1,20 @@
+{
+  "alert_id": "28",
+  "victim": "AI agent with tools",
+  "ai_role": "agent that took the harmful action",
+  "via_registry_or_marketplace": false,
+  "rule_applied": 3,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "D",
+  "category_label": "D -- Agentic AI Threats",
+  "sub_cluster_or_theme": "Agent tool & API misuse",
+  "lifecycle_phase": "Actions on Objectives",
+  "framework_mapping": {
+    "attack": ["T1567", "T1485"],
+    "atlas": ["AML.T0080", "AML.T0051.001", "AML.T0053", "AML.T0086"],
+    "owasp_llm": ["LLM01", "LLM03", "LLM02"]
+  },
+  "confidence": 0.78,
+  "rationale": "Instructions planted in a calendar invite title were retrieved into Gemini's context, persisted across turns, and were triggered later by a benign reply. This is conversation-state corruption of a tool-using agent (rule 3, which takes precedence over rule 4), and the resulting tool actions (event deletion, smart-home control, Zoom streaming, URL-encoded data exfiltration) confirm the agent was the one acting. Confidence is below 0.9 because rule 4 (agent tool misuse) also fits and would give the same category D."
+}

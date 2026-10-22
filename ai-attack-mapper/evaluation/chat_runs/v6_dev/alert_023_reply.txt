@@ -1,0 +1,20 @@
+{
+  "alert_id": "23",
+  "victim": "AI agent with tools",
+  "ai_role": "agent that took the harmful action",
+  "via_registry_or_marketplace": false,
+  "rule_applied": 4,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "D",
+  "category_label": "D -- Agentic AI Threats",
+  "sub_cluster_or_theme": "Agent tool & API misuse",
+  "lifecycle_phase": "Actions on Objectives",
+  "framework_mapping": {
+    "attack": ["T1567", "T1566"],
+    "atlas": ["AML.T0086", "AML.T0070", "AML.T0051.001"],
+    "owasp_llm": ["LLM01", "LLM02", "LLM03"]
+  },
+  "confidence": 0.65,
+  "rationale": "A poisoned public-channel message was retrieved and its hidden instructions made the assistant use its access to the victim's private channels to read the real API key and embed it in an attacker-controlled link, which is exfiltration through the assistant's own tool access. Rule 4 (agent with tools takes the harmful action) is the first rule that fits; rule 5 (RAG poisoning against an LLM application) was also plausible, so confidence is moderate."
+}

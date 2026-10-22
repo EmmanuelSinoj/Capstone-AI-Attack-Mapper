@@ -1,0 +1,20 @@
+{
+  "alert_id": "14",
+  "victim": "LLM application, its data or account",
+  "ai_role": "target",
+  "via_registry_or_marketplace": false,
+  "rule_applied": 5,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "C",
+  "category_label": "C -- LLM/GenAI Application Attacks",
+  "sub_cluster_or_theme": "LLM service abuse & cost",
+  "lifecycle_phase": "Actions on Objectives",
+  "framework_mapping": {
+    "attack": ["T1078", "T1552", "T1496"],
+    "atlas": ["AML.T0012", "AML.T0055", "AML.T0054"],
+    "owasp_llm": ["LLM06"]
+  },
+  "confidence": 0.8,
+  "rationale": "Storm-2139 used scraped customer credentials to access hosted Azure OpenAI accounts, jailbroke the service's guardrails with the de3u tool and resold access via a reverse proxy, which fits rule 5's stolen credentials used to abuse hosted LLM services and bypass guardrails at scale. Rule 2 was plausible because AI-generated abusive imagery harms people, but the alert centers on abuse of the hosted service and its accounts, not on AI producing an attack against a conventional victim."
+}

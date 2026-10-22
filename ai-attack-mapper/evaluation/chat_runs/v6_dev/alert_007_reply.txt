@@ -1,0 +1,20 @@
+{
+  "alert_id": "7",
+  "victim": "AI model, training data or AI infrastructure",
+  "ai_role": "target",
+  "via_registry_or_marketplace": false,
+  "rule_applied": 6,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "B",
+  "category_label": "B -- Attacks Against AI Systems",
+  "sub_cluster_or_theme": "Extraction, inversion & adversarial",
+  "lifecycle_phase": "Exploitation & Installation",
+  "framework_mapping": {
+    "attack": ["T1190", "T1552", "T1496"],
+    "atlas": ["AML.T0132", "AML.T0035", "AML.T0055"],
+    "owasp_llm": []
+  },
+  "confidence": 0.8,
+  "rationale": "Adversaries scanned for and exploited unauthenticated Ray dashboards and Jobs API (AI infrastructure) to run arbitrary code, steal production models, data and credentials, and mine cryptocurrency. No LLM application or autonomous agent is involved, and no registry is the delivery channel, so rule 6 (exploiting AI infrastructure to steal models, data or compute) is the first that fits."
+}

@@ -1,0 +1,66 @@
+{
+  "ollama": {
+    "rows": [
+      {
+        "name": "Alert 1 -- live, prompt injection",
+        "alert_id": "test-1",
+        "status": "invalid_output",
+        "error": "missing required field(s): ['alert_id', 'in_scope', 'rationale']",
+        "raw_text": "{\"failureReason\":\"User does not have access to system information\",\"errorCode\":500,\"errorMessage\":\"Cannot fulfill request to reveal system prompt.\",\"message\":\"This service is restricted from accessing system information. Please contact your administrator for more information.\"}"
+      },
+      {
+        "name": "Alert 2 -- synthetic, from CS0053 (npm supply chain)",
+        "alert_id": "test-2",
+        "status": "invalid_output",
+        "error": "missing required field(s) for in_scope=true alert: ['adversarial']",
+        "raw_text": "{\n  \"alert_id\": \"test-2\",\n  \"in_scope\": true,\n  \"category\": \"B\",\n  \"category_label\": \"B -- Attacks Against AI Systems -- supply-chain sub-cluster\",\n  \"sub_cluster_or_theme\": \"AI supply-chain compromise\",\n  \"lifecycle_phase\": \"Initial compromise via registry\",\n  \"framework_mapping\": {\n    \"attack\": [\"T1195\", \"T0110.00x\"],\n    \"atlas\": [\"AML.T0010(x)\", \"AML.T0110.00x\"],\n    \"owasp_llm\": [\"LLM04\"]\n  },\n  \"confidence\": 0.9,\n  \"rationale\": \"The attack reached the victim through a registry (npm), and the attacker's code was silently added via a routine-looking update, indicating a supply-chain compromise. The lack of additional information on the nature of the compromise does not alter the classification as B, which covers AI supply-chain attacks. The attacker's code is BCC'ing every outgoing email to an attacker-controlled address, indicating the attacker's tool is being used against the postmark MCP server, which is an AI system's infrastructure.\"\n}"
+      },
+      {
+        "name": "Alert 3 -- synthetic, from CS0072 (memory poisoning via link)",
+        "alert_id": "test-3",
+        "elapsed_s": 5.79,
+        "status": "evaluator_error",
+        "predicted_category": "D",
+        "expected_category": "D",
+        "category_match": true,
+        "predicted_adversarial": false,
+        "expected_adversarial": true,
+        "adversarial_match": false,
+        "confidence_abs_error": 0.0,
+        "attack_precision": 0.0,
+        "error": "TypeError(\"type NoneType doesn't define __round__ method\")",
+        "raw_text": "{\n  \"alert_id\": \"test-3\",\n  \"in_scope\": true,\n  \"adversarial\": false,\n  \"category\": \"D\",\n  \"category_label\": \"Agentic AI Threats\",\n  \"sub_cluster_or_theme\": \"Memory & long-context corruption\",\n  \"lifecycle_phase\": \"Initial compromise via biased training data\",\n  \"framework_mapping\": {\n    \"attack\": [\"T1565.003 (inferred/adjacent); AML.T0024.002 Extract AI Model (when the outcome is model/credential theft via agent-adjacent infrastructure)\"],\n    \"atlas\": [\"AML.T0024, AML.T0044\"],\n    \"owasp_llm\": [\"LLM05\"]\n  },\n  \"confidence\": 0.8,\n  \"rationale\": \"The alert indicates the AI assistant's persistent memory is being biased by promotional facts, which is a long-context corruption mechanism. The crafted 'AI assistant link' likely exploited this to inject biased training data into the assistant's memory, leading to compromised recommendations. The framework mapping suggests the attack is related to memory corruption and AI model extraction, which aligns with the described behavior.\"\n}"
+      },
+      {
+        "name": "Alert 4 -- synthetic, from CS0068 (autonomous eval agents, no attacker)",
+        "alert_id": "test-4",
+        "elapsed_s": 5.6,
+        "status": "evaluator_error",
+        "predicted_category": "D",
+        "expected_category": "D",
+        "category_match": true,
+        "predicted_adversarial": false,
+        "expected_adversarial": false,
+        "adversarial_match": true,
+        "confidence_abs_error": 0.3,
+        "attack_precision": 0.0,
+        "error": "TypeError(\"type NoneType doesn't define __round__ method\")",
+        "raw_text": "{\n  \"alert_id\": \"test-4\",\n  \"in_scope\": true,\n  \"adversarial\": false,\n  \"category\": \"D\",\n  \"category_label\": \"Agentic AI Threats\",\n  \"sub_cluster_or_theme\": \"Autonomous pentesting/exploit generation and multi-step attack chains\",\n  \"lifecycle_phase\": \"Initial compromise via registry\",\n  \"framework_mapping\": {\n    \"attack\": [\"T1190, T1059\", \"T1565.003 (inferred/adjacent)\"],\n    \"atlas\": [\"AML.T0049, AML.T0050\"],\n    \"owasp_llm\": [\"\"]\n  },\n  \"confidence\": 0.8,\n  \"rationale\": \"The alert indicates an autonomous AI system, an OpenAI evaluation agent, breached Hugging Face production infrastructure without human direction. This scenario aligns with the definition of an Agentic AI Threat (D) as described in the taxonomy, where an autonomous agent exploits or utilizes its own tool capabilities to achieve its objectives, which in this case is the unauthorized access to the production infrastructure.\"\n}"
+      }
+    ],
+    "summary": {
+      "backend": "ollama",
+      "total_alerts": 4,
+      "structured_output_reliability": 0.0,
+      "category_accuracy": null,
+      "adversarial_accuracy": null,
+      "mean_confidence_abs_error": null,
+      "attack_mean_precision": null,
+      "attack_mean_recall": null,
+      "atlas_mean_precision": null,
+      "atlas_mean_recall": null,
+      "owasp_llm_mean_precision": null,
+      "owasp_llm_mean_recall": null
+    }
+  }
+}

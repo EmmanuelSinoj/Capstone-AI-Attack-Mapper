@@ -1,0 +1,20 @@
+{
+  "alert_id": "30",
+  "victim": "AI agent with tools",
+  "ai_role": "agent that took the harmful action",
+  "via_registry_or_marketplace": false,
+  "rule_applied": 4,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "D",
+  "category_label": "D -- Agentic AI Threats",
+  "sub_cluster_or_theme": "Agent tool & API misuse",
+  "lifecycle_phase": "Actions on Objectives",
+  "framework_mapping": {
+    "attack": ["T1059", "T1552", "T1567"],
+    "atlas": ["AML.T0086", "AML.T0051.001", "AML.T0053"],
+    "owasp_llm": ["LLM01", "LLM03"]
+  },
+  "confidence": 0.85,
+  "rationale": "Researchers hid an indirect prompt injection in a scraped page's title tag, and it was meant to make Cursor, an LLM agent with tools, use run_terminal_cmd to find credential files and exfiltrate them via curl. Rule 3 was considered because the context was poisoned, but the harm comes from the agent's tool call rather than persistent memory corruption, so rule 4 is the first that fits. Cursor's confirmation prompt mitigated the attack, but the target and technique are unchanged."
+}

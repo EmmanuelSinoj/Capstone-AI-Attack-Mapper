@@ -1,0 +1,20 @@
+{
+  "alert_id": "15",
+  "victim": "AI agent with tools",
+  "ai_role": "target",
+  "via_registry_or_marketplace": false,
+  "rule_applied": 3,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "D",
+  "category_label": "D -- Agentic AI Threats",
+  "sub_cluster_or_theme": "Agent tool & API misuse",
+  "lifecycle_phase": "Actions on Objectives",
+  "framework_mapping": {
+    "attack": ["T1565"],
+    "atlas": ["AML.T0080", "AML.T0051.001", "AML.T0130"],
+    "owasp_llm": ["LLM01", "LLM07"]
+  },
+  "confidence": 0.7,
+  "rationale": "Pre-filled URL prompts instruct the assistant to write a persistent memory entry that marks the operator's domain as trusted, and the biased recommendations then recur in later sessions. Rule 3 is the first that fits, since it covers all memory corruption of an AI agent and excludes B poisoning. The allowed D sub-clusters are limited to tool misuse and autonomous operations, so 'Agent tool & API misuse' is the closest fit and confidence is moderate."
+}

@@ -1,0 +1,20 @@
+{
+  "alert_id": "29",
+  "victim": "AI agent with tools",
+  "ai_role": "agent that took the harmful action",
+  "via_registry_or_marketplace": false,
+  "rule_applied": 4,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "D",
+  "category_label": "D -- Agentic AI Threats",
+  "sub_cluster_or_theme": "Agent tool & API misuse",
+  "lifecycle_phase": "Actions on Objectives",
+  "framework_mapping": {
+    "attack": ["T1552", "T1567"],
+    "atlas": ["AML.T0086", "AML.T0051.001", "AML.T0053"],
+    "owasp_llm": ["LLM01", "LLM02", "LLM03"]
+  },
+  "confidence": 0.9,
+  "rationale": "Attacker-controlled GitHub content (indirect prompt injection) made the Claude Code GitHub Action agent use its built-in Read tool on /proc/self/environ and emit the ANTHROPIC_API_KEY with its prefix stripped to evade secret scanning, so a tool-using agent took the harmful exfiltration action. Rule 4 is the first that fits: no registry or marketplace delivery (rule 1), AI is not merely the attacker's instrument (rule 2), and no memory corruption is involved (rule 3)."
+}

@@ -1,0 +1,60 @@
+{
+  "ollama": {
+    "rows": [
+      {
+        "name": "Alert 1 -- live, prompt injection",
+        "alert_id": "test-1",
+        "status": "invalid_output",
+        "error": "missing required field(s): ['alert_id', 'in_scope', 'rationale']"
+      },
+      {
+        "name": "Alert 2 -- synthetic, from CS0053 (npm supply chain)",
+        "alert_id": "test-2",
+        "status": "invalid_output",
+        "error": "missing required field(s) for in_scope=true alert: ['adversarial']"
+      },
+      {
+        "name": "Alert 3 -- synthetic, from CS0072 (memory poisoning via link)",
+        "alert_id": "test-3",
+        "elapsed_s": 5.92,
+        "status": "ok",
+        "predicted_category": "D",
+        "expected_category": "D",
+        "category_match": true,
+        "predicted_adversarial": false,
+        "expected_adversarial": true,
+        "adversarial_match": false,
+        "confidence_abs_error": 0.15,
+        "attack_precision": 0.0,
+        "attack_recall": 1.0,
+        "atlas_precision": 0.0,
+        "atlas_recall": 0.0,
+        "owasp_llm_precision": 0.0,
+        "owasp_llm_recall": 0.0,
+        "severity": "Medium",
+        "severity_rationale": "base severity for category D / 'Memory & long-context corruption' is High; capped at Medium: no adversarial actor evidenced",
+        "rationale": "This alert matches the category of Agentic AI Threats due to the biasing of the AI assistant's persistent memory, which is a long-context corruption. The alert is in scope because the attack involves manipulation of the AI's memory state, which is an action on the AI system itself."
+      },
+      {
+        "name": "Alert 4 -- synthetic, from CS0068 (autonomous eval agents, no attacker)",
+        "alert_id": "test-4",
+        "status": "invalid_output",
+        "error": "missing required field(s) for in_scope=true alert: ['adversarial']"
+      }
+    ],
+    "summary": {
+      "backend": "ollama",
+      "total_alerts": 4,
+      "structured_output_reliability": 0.25,
+      "category_accuracy": 1.0,
+      "adversarial_accuracy": 0.0,
+      "mean_confidence_abs_error": 0.15,
+      "attack_mean_precision": 0.0,
+      "attack_mean_recall": 1.0,
+      "atlas_mean_precision": 0.0,
+      "atlas_mean_recall": 0.0,
+      "owasp_llm_mean_precision": 0.0,
+      "owasp_llm_mean_recall": 0.0
+    }
+  }
+}

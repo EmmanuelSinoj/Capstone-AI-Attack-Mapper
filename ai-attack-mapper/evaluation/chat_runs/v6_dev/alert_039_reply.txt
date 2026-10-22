@@ -1,0 +1,20 @@
+{
+  "alert_id": "39",
+  "victim": "person or conventional organisation",
+  "ai_role": "attacker's instrument",
+  "via_registry_or_marketplace": false,
+  "rule_applied": 2,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "A",
+  "category_label": "A -- AI-Assisted Traditional Attacks",
+  "sub_cluster_or_theme": "AI-assisted malware",
+  "lifecycle_phase": "Weaponization",
+  "framework_mapping": {
+    "attack": ["T1587", "T1588", "T1204", "T1059"],
+    "atlas": ["AML.T0102", "AML.T0017", "AML.T0096"],
+    "owasp_llm": []
+  },
+  "confidence": 0.8,
+  "rationale": "A threat actor used ChatGPT accounts to debug and iterate on Windows malware and its C2 server, so AI is only the attacker's instrument and the victims are conventional users; rule 2 is the first that fits. Rule 1 was considered because the malware was distributed via a public code repository impersonating Crosshair-X, but that repository is not an AI artifact, so supply chain does not apply. Weaponization is the best lifecycle fit because the AI assistance went into building and refining the malware, even though the output also describes delivery.",
+}

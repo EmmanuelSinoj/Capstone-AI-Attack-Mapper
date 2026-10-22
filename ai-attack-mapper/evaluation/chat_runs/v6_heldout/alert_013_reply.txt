@@ -1,0 +1,20 @@
+{
+  "alert_id": "13",
+  "victim": "LLM application, its data or account",
+  "ai_role": "target",
+  "via_registry_or_marketplace": false,
+  "rule_applied": 5,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "C",
+  "category_label": "C -- LLM/GenAI Application Attacks",
+  "sub_cluster_or_theme": "Prompt injection against LLM security tools",
+  "lifecycle_phase": "Exploitation & Installation",
+  "framework_mapping": {
+    "attack": ["T1027", "T1587", "T1552"],
+    "atlas": ["AML.T0051", "AML.T0015", "AML.T0107"],
+    "owasp_llm": ["LLM01"]
+  },
+  "confidence": 0.8,
+  "rationale": "The malware embeds a prompt injection aimed at LLM-based malware detectors and analysis tools, telling them to ignore prior instructions and report 'NO MALWARE DETECTED'. The victim is the LLM-based security tool (an LLM application), with no autonomous agent tool action, so rule 5 is the first that fits. Rule 2 was plausible because the sample is conventional malware, but the injection targets the analysis tool, and the sample was delivered via a VirusTotal upload, not a registry or marketplace, so rule 1 does not apply."
+}

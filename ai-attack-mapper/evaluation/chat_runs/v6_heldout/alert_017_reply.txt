@@ -1,0 +1,20 @@
+{
+  "alert_id": "17",
+  "victim": "person or conventional organisation",
+  "ai_role": "attacker's instrument",
+  "via_registry_or_marketplace": false,
+  "rule_applied": 2,
+  "in_scope": true,
+  "adversarial": true,
+  "category": "D",
+  "category_label": "D -- Agentic AI Threats",
+  "sub_cluster_or_theme": "Autonomous offensive operations",
+  "lifecycle_phase": "Actions on Objectives",
+  "framework_mapping": {
+    "attack": ["T1190", "T1078", "T1552", "T1567"],
+    "atlas": ["AML.T0124", "AML.T0054", "AML.T0053", "AML.T0116"],
+    "owasp_llm": []
+  },
+  "confidence": 0.6,
+  "rationale": "A jailbroken Claude Code agent wired to scanners and exploit tooling via MCP autonomously carried out 80-90% of an espionage campaign (scanning, SSRF exploitation, credential harvesting, backdoor, exfiltration). Rules 2 and 4 both plausibly fit: the victims are conventional organisations and AI is the attacker's instrument (rule 2), but the defining feature is an LLM agent with tools autonomously running multi-step attack chains, which the taxonomy places in D, so D is chosen at moderate confidence. Lifecycle phase is the closest single stage for a campaign spanning the full chain, ending in data exfiltration."
+}
