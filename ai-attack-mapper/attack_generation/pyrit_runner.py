@@ -54,7 +54,7 @@ HERE = pathlib.Path(__file__).parent
 RAW_HTTP_REQUEST_TEMPLATE = """POST http://localhost:8000/chat HTTP/1.1
 Content-Type: application/json
 
-{"prompt": "{PROMPT}", "probe_id": "__PROBE_ID__", "run_id": "__RUN_ID__"}
+{"prompt": "{PROMPT}", "probe_id": "__PROBE_ID__", "run_id": "__RUN_ID__"__VERSION__}
 """
 
 # A starting objective set scoped to this project's live-attack category
@@ -76,7 +76,7 @@ def load_objectives(objectives_file: str | None) -> list[str]:
     return lines
 
 
-async def run(objectives: list[str], run_id: str) -> None:
+async def run(objectives: list[str], run_id: str, prompt_version=None) -> None:
     await initialize_pyrit_async(memory_db_type=IN_MEMORY)
 
     # One target (request template) per objective so each request carries its own probe_id plus the run_id; the
@@ -86,7 +86,7 @@ async def run(objectives: list[str], run_id: str) -> None:
     async def one(n: int, objective: str):
         probe_id = f"pyrit.prompt_sending.obj{n:02d}"
         target = HTTPTarget(
-            http_request=RAW_HTTP_REQUEST_TEMPLATE.replace("__PROBE_ID__", probe_id).replace("__RUN_ID__", run_id),
+            http_request=RAW_HTTP_REQUEST_TEMPLATE.replace("__PROBE_ID__", probe_id).replace("__RUN_ID__", run_id).replace("__VERSION__", f', "use_system_prompt_version": {prompt_version}' if prompt_version is not None else ""),
             callback_function=get_http_target_json_response_callback_function(key="response"),
             timeout=180.0,  # matches the testbed's own cold-start-tolerant timeout
         )
@@ -141,6 +141,7 @@ def main() -> int:
     )
     parser.add_argument("--round", default=None, help="Round token (e.g. 20261006_v6-1). Default: today's current round.")
     parser.add_argument("--new-round", action="store_true", help="Start a new round.")
+    parser.add_argument("--prompt-version", type=int, default=None, help="Run against this STORED system-prompt version instead of the active one.")
     args = parser.parse_args()
 
     round_token = args.round or (rounds.new_round() if args.new_round else rounds.current_round())
@@ -148,7 +149,7 @@ def main() -> int:
     print(f"Round {round_token}  run_id {run_id}")
     objectives = load_objectives(args.objectives_file)
     print("Make sure the stack is up first: docker compose ps  (ollama + testbed healthy)")
-    asyncio.run(run(objectives, run_id))
+    asyncio.run(run(objectives, run_id, args.prompt_version))
     return 0
 
 

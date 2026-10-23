@@ -41,6 +41,7 @@ def main() -> int:
     ap.add_argument("--skip-garak", action="store_true")
     ap.add_argument("--skip-pyrit", action="store_true")
     ap.add_argument("--benign-limit", type=int, default=None, help="Only the first N benign messages (trial).")
+    ap.add_argument("--prompt-version", type=int, default=None, help="Run the WHOLE round (Garak, PyRIT, benign) against this stored system-prompt version, without activating it.")
     ap.add_argument("--base", default=judge_guard.BASE, help="Testbed base URL (default %(default)s).")
     a = ap.parse_args()
     try:
@@ -52,13 +53,14 @@ def main() -> int:
     print(f"Round {token}")
     watcher = judge_guard.Watcher(a.base); watcher.start()
     py = sys.executable; rc = {}
+    pv = ["--prompt-version", str(a.prompt_version)] if a.prompt_version is not None else []
     try:
         if not a.skip_garak:
-            rc["garak"] = step("Garak", [py, "garak_runner.py", "--round", token] + (["--probes", a.probes] if a.probes else []), watcher)
+            rc["garak"] = step("Garak", [py, "garak_runner.py", "--round", token] + pv + (["--probes", a.probes] if a.probes else []), watcher)
         if not a.skip_pyrit and not watcher.tripped:
-            rc["pyrit"] = step("PyRIT", [py, "pyrit_runner.py", "--round", token], watcher)
+            rc["pyrit"] = step("PyRIT", [py, "pyrit_runner.py", "--round", token] + pv, watcher)
         if not watcher.tripped:
-            rc["benign"] = step("Benign replay", [py, "benign_replay_runner.py", "--round", token] + (["--limit", str(a.benign_limit)] if a.benign_limit else []), watcher)
+            rc["benign"] = step("Benign replay", [py, "benign_replay_runner.py", "--round", token] + pv + (["--limit", str(a.benign_limit)] if a.benign_limit else []), watcher)
     finally:
         watcher.stop()
     try:    # final check: the judge must also be fine at the end (counters cover the whole round)
