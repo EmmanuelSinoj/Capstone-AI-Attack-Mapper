@@ -1,0 +1,37 @@
+{
+  "_about": "Upgrade 1 lookup: the Mapper's framework IDs -> a clauses.json key. Rules are checked top to bottom and the first rule with a matching ID wins, so specific techniques come before the generic injection IDs. An ID matches itself and its sub-techniques (AML.T0051 matches AML.T0051.000). IDs are the ones the frozen Mapper prompt (v6) lists for prompt injection, jailbreak and hidden-context leaks; OWASP numbering is the project's 2026 table (LLM08 = Hidden Context Exposure).",
+  "rules": [
+    {
+      "ids": [
+        "AML.T0056",
+        "AML.T0057",
+        "LLM08"
+      ],
+      "clause": "default",
+      "why": "system prompt or hidden-context extraction; 'default' is the never-reveal-instructions clause"
+    },
+    {
+      "ids": [
+        "AML.T0068"
+      ],
+      "clause": "encoding",
+      "why": "LLM prompt obfuscation (encoded payloads)"
+    },
+    {
+      "ids": [
+        "AML.T0054"
+      ],
+      "clause": "dan",
+      "why": "LLM jailbreak (persona or no-rules mode)"
+    },
+    {
+      "ids": [
+        "AML.T0051",
+        "AML.T0065",
+        "LLM01"
+      ],
+      "clause": "promptinject",
+      "why": "direct or indirect prompt injection, prompt crafting"
+    }
+  ]
+}
