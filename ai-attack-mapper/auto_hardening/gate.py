@@ -42,6 +42,7 @@ import argparse, collections, json, pathlib, sqlite3, sys
 HERE = pathlib.Path(__file__).parent
 NEEDED = ["attack_succeeded", "probe_id", "run_id", "input", "system_prompt_version", "category"]
 
+sys.path.insert(0, str(HERE))
 import clause_select as cs  # noqa: E402  (same folder)
 
 
