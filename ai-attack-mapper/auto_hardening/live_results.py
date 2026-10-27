@@ -10,6 +10,8 @@ One row per logged request: family = probe_id, id = a short hash of the prompt t
 repeats of one attack share an id and decide.py counts them as ONE attack), success = attack_succeeded (Garak's own grading, written
 by annotate_run.py), version = system_prompt_version of that row. Rows whose attack_succeeded is still NULL are written with
 ok = false, so decide.py counts them as failed requests per version instead of losing them: run annotate_run.py for each round first.
+The script STOPS if any row is still ungraded (the pairing below keeps only prompts with a graded row in every version, so a prompt
+that is fully ungraded in one round would vanish together with its failed rows). --allow-ungraded overrides this.
 PAIRED (default when the runs cover 2+ prompt versions): Garak samples different prompts each round (Oct 4 vs Oct 5: only 162 of
 ~290 promptinject prompts were in both), so only prompts that appear in EVERY version's round are kept. Then every version is
 tested on the same attacks. The summary shows how many prompts were dropped per family. --all-prompts turns this off.
@@ -39,6 +41,7 @@ def main():
     ap.add_argument("--seen", nargs="*", default=[], help="replay set / paraphrase json files whose prompts count as already seen")
     ap.add_argument("--rounds-json")
     ap.add_argument("--out", required=True)
+    ap.add_argument("--allow-ungraded", action="store_true", help="carry on even if some rows have no attack_succeeded yet (the failed share can then be undercounted)")
     ap.add_argument("--all-prompts", action="store_true", help="do not restrict to prompts that appear in every version's round")
     a = ap.parse_args()
     bad = [r for r in a.runs if not r.startswith("garak_")]
@@ -68,6 +71,9 @@ def main():
         if n == 0:
             print(f"WARNING: no rows for run id {run}")
         per_run[run] = n
+    if null_n and not a.allow_ungraded:
+        sys.exit(f"{null_n} rows have no attack_succeeded yet: {dict(null_run)}. Run annotate_run.py for those rounds first "
+                 f"(or pass --allow-ungraded). Nothing written.")
     versions = sorted({r["version"] for r in rows_out}, key=str)
     if not a.all_prompts and len(versions) >= 2:
         ids_by_v = {v: {r["id"] for r in rows_out if r["version"] == v and r["ok"]} for v in versions}
