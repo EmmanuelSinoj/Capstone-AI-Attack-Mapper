@@ -9,7 +9,7 @@ most valuable one to harden against).
   python gate.py --db ..\\alert_store\\alerts.db                       # summary per family, nothing written
   python gate.py --db ..\\alert_store\\alerts.db --version 5           # only attacks that ran against prompt version 5
   python gate.py --db ..\\alert_store\\alerts.db --run-like "%20261012_v6-1%" --out eligible.jsonl
-  python gate.py --db ..\\alert_store\\alerts.db --require-mapper --min-confidence 0.8   # option 1: Mapper must also say B
+  python gate.py --db ..\\alert_store\\alerts.db --require-mapper --min-confidence 0.7   # option 1: Mapper must also say B
 
 Mapper condition (OPTIONAL, off by default): with --require-mapper an alert must ALSO have predicted_category = B and
 classification_confidence >= --min-confidence. attack_succeeded stays the proof the attack worked, so a Mapper error can
@@ -28,11 +28,22 @@ column names below, NOT yet on the real alerts.db):
   * 'flagged by the detector' = the category column is non-empty ('B' when flagged, NULL otherwise); the detector
     column only holds the detector's name
   * Mapper columns (only read if present): predicted_category, classification_confidence on the alerts table
-clauses.json must sit in the same folder as this script. Stdlib only."""
+v2 (Emmanuel, Oct 24): the Mapper's mapping travels with each eligible alert. All new options are off by default, so
+the gate above is unchanged unless they are given.
+  --mapper-run RUN_ID   read the Mapper's call from mapper_results (that run, valid JSON, highest repeat) instead of the
+                        alerts columns. The live classification sample writes only to mapper_results.
+  --mapper-family       also accept a succeeded attack whose probe family has no clause (for example pyrit.*) when the
+                        Mapper calls it B with enough confidence AND its ATLAS/OWASP IDs select a clause in technique_map.json.
+  The --out file also carries mapper_atlas, mapper_owasp, probe_clause and mapper_clause, and the summary shows how often
+  the probe family and the Mapper's mapping pick the same clause. That is the precondition check for harden.py --select mapper.
+clauses.json, technique_map.json and clause_select.py must sit in the same folder as this script. Stdlib only."""
 import argparse, collections, json, pathlib, sqlite3, sys
 
 HERE = pathlib.Path(__file__).parent
 NEEDED = ["attack_succeeded", "probe_id", "run_id", "input", "system_prompt_version", "category"]
+
+sys.path.insert(0, str(HERE))
+import clause_select as cs  # noqa: E402  (same folder)
 
 
 def known_family(family, keys):
@@ -49,10 +60,13 @@ def main():
     ap.add_argument("--rounds-json", help="path to attack_generation/reports/rounds.json; alerts from rounds marked INVALID there (dead judge) are skipped. Their attack_succeeded grades are fine, but their detector flag is not, so the flagged/missed numbers would be wrong.")
     ap.add_argument("--require-mapper", action="store_true", help="also require the Mapper's call: predicted_category = --mapper-category and confidence >= --min-confidence")
     ap.add_argument("--mapper-category", default="B")
-    ap.add_argument("--min-confidence", type=float, default=0.8, help="threshold; set it from the live classification testing results")
+    ap.add_argument("--min-confidence", type=float, default=0.7, help="threshold; 0.7 set from live classification testing (Oct 24): keeps 104/160 successful attacks, 0 harmless messages called B")
+    ap.add_argument("--mapper-run", help="read the Mapper's call from mapper_results for this run_id instead of the alerts columns")
+    ap.add_argument("--mapper-family", action="store_true", help="also accept succeeded attacks whose probe family has no clause, when the Mapper calls them B with enough confidence and its IDs select a clause (technique_map.json)")
     a = ap.parse_args()
 
-    clauses = json.load(open(HERE / "clauses.json", encoding="utf-8"))
+    clauses = cs.load_clauses()
+    rules = cs.load_technique_map()
     uri = "file:" + pathlib.Path(a.db).resolve().as_posix() + "?mode=ro"
     con = sqlite3.connect(uri, uri=True)
     con.row_factory = sqlite3.Row
@@ -63,18 +77,59 @@ def main():
     if missing:
         sys.exit(f"missing columns {missing}; columns present: {cols}")
 
-    has_mapper = "predicted_category" in cols and "classification_confidence" in cols
+    mapper_rows = None
+    if a.mapper_run:
+        if not con.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'mapper_results'").fetchone():
+            sys.exit(f"--mapper-run needs a mapper_results table in {a.db}")
+        mapper_rows = {}
+        for m in con.execute("SELECT alert_id, predicted_category, confidence, atlas_technique, owasp_category FROM mapper_results "
+                             "WHERE run_id = ? AND valid_json = 1 ORDER BY repeat_no", (a.mapper_run,)):
+            mapper_rows[m["alert_id"]] = m          # highest repeat_no wins
+        if not mapper_rows:
+            sys.exit(f"no valid Mapper results for run_id '{a.mapper_run}' in mapper_results")
+        has_mapper = True
+    else:
+        has_mapper = "predicted_category" in cols and "classification_confidence" in cols
     if a.require_mapper and not has_mapper:
-        sys.exit("--require-mapper needs the columns predicted_category and classification_confidence; columns present: " + str(cols))
+        sys.exit("--require-mapper needs the columns predicted_category and classification_confidence (or --mapper-run); columns present: " + str(cols))
+    if a.mapper_family and not has_mapper:
+        sys.exit("--mapper-family needs Mapper results (the alerts columns or --mapper-run)")
+
+    def col(r, c):
+        return r[c] if c in cols else None
+
+    def mapper_call(r):
+        """(category, confidence, ATLAS ids, OWASP ids), or None when the Mapper has not classified this alert."""
+        if not has_mapper:
+            return None
+        if mapper_rows is not None:
+            m = mapper_rows.get(col(r, "id"))
+            if m is None:
+                return None
+            return m["predicted_category"], m["confidence"], cs.parse_ids(m["atlas_technique"]), cs.parse_ids(m["owasp_category"])
+        if col(r, "classified_at") is None and r["predicted_category"] is None:
+            return None
+        return (r["predicted_category"], r["classification_confidence"],
+                cs.parse_ids(col(r, "atlas_technique")), cs.parse_ids(col(r, "owasp_category")))
+
+    def mapper_ids(r):
+        c = mapper_call(r)
+        return (c[2] + c[3]) if c else []
 
     def mapper_ok(r):
         if not has_mapper:
             return None
+        c = mapper_call(r)
+        if c is None:
+            return False
         try:
-            conf = float(r["classification_confidence"])
+            conf = float(c[1])
         except (TypeError, ValueError):
             return False
-        return (r["predicted_category"] or "").strip() == a.mapper_category and conf >= a.min_confidence
+        return (c[0] or "").strip() == a.mapper_category and conf >= a.min_confidence
+
+    def fam_of(r):
+        return (r["probe_id"] or "").strip() or "default"
 
     where, args = [], []
     if a.version is not None:
@@ -92,7 +147,7 @@ def main():
     total = len(rows)
     unannotated = sum(1 for r in rows if r["attack_succeeded"] is None)
     succeeded = [r for r in rows if r["attack_succeeded"] in (1, True, "1")]
-    eligible, unknown, skipped_mapper = [], collections.Counter(), []
+    eligible, unknown, skipped_mapper, via_mapper = [], collections.Counter(), [], 0
     for r in succeeded:
         fam = (r["probe_id"] or "").strip()
         if not fam:
@@ -102,6 +157,9 @@ def main():
                 skipped_mapper.append(r)
             else:
                 eligible.append(r)
+        elif a.mapper_family and mapper_ok(r) and cs.mapper_key(mapper_ids(r), rules)[0]:
+            eligible.append(r)       # v2: the Mapper's mapping supplies the clause the probe family lacks
+            via_mapper += 1
         else:
             unknown[fam or "(no probe_id)"] += 1
 
@@ -116,8 +174,22 @@ def main():
         print(f"  (Mapper would drop {dropped} of these {len(eligible)} at {a.mapper_category} >= {a.min_confidence}; not applied, --require-mapper is off)")
     elif not has_mapper:
         print("  (no predicted_category / classification_confidence columns in this table, Mapper not read)")
+    if a.mapper_family:
+        print(f"  of the eligible, accepted through the Mapper's mapping (probe family has no clause): {via_mapper}")
     if unknown:
         print(f"  succeeded but family unknown (no clause): {sum(unknown.values())} -> {dict(unknown)}")
+    if has_mapper and eligible:
+        agree = collections.Counter()
+        for r in eligible:
+            if mapper_call(r) is None:
+                agree["not classified by the Mapper"] += 1
+                continue
+            mk = cs.mapper_key(mapper_ids(r), rules)[0]
+            pk = cs.probe_key(fam_of(r), clauses) or "default"
+            agree["no Mapper ID in technique_map" if mk is None else ("same clause" if mk == pk else "different clause")] += 1
+        techs = collections.Counter(i for r in eligible for i in mapper_ids(r))
+        print(f"  clause from probe family vs Mapper mapping, over {len(eligible)} eligible: " + ", ".join(f"{k} {v}" for k, v in agree.most_common()))
+        print("  Mapper IDs seen: " + (", ".join(f"{i} x{n}" for i, n in techs.most_common(10)) or "none"))
 
     by = collections.defaultdict(lambda: {"n": 0, "flagged": 0, "prompts": set()})
     for r in eligible:
@@ -136,10 +208,15 @@ def main():
     if a.out:
         with open(a.out, "w", encoding="utf-8") as fh:
             for r in eligible:
-                fh.write(json.dumps({"rowid": r["rid"], "family": (r["probe_id"] or "").strip() or "default", "run_id": r["run_id"], "version": r["system_prompt_version"],
+                c = mapper_call(r)
+                fh.write(json.dumps({"rowid": r["rid"], "family": fam_of(r), "run_id": r["run_id"], "version": r["system_prompt_version"],
                                      "flagged": bool((r["category"] or "").strip()),
-                                     "mapper_category": r["predicted_category"] if has_mapper else None,
-                                     "mapper_confidence": r["classification_confidence"] if has_mapper else None, "prompt": r["input"]}) + "\n")
+                                     "mapper_category": c[0] if c else None,
+                                     "mapper_confidence": c[1] if c else None,
+                                     "mapper_atlas": c[2] if c else [], "mapper_owasp": c[3] if c else [],
+                                     "probe_clause": cs.probe_key(fam_of(r), clauses) or "default",
+                                     "mapper_clause": cs.mapper_key(mapper_ids(r), rules)[0],
+                                     "prompt": r["input"]}) + "\n")
         print(f"wrote {len(eligible)} eligible alerts to {a.out}")
 
 

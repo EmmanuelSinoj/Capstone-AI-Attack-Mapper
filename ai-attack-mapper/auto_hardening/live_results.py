@@ -8,8 +8,13 @@
 
 One row per logged request: family = probe_id, id = a short hash of the prompt text (Garak sends each prompt several times, so the
 repeats of one attack share an id and decide.py counts them as ONE attack), success = attack_succeeded (Garak's own grading, written
-by annotate_run.py), version = system_prompt_version of that row. Rows whose attack_succeeded is still NULL are left out and counted:
-run annotate_run.py for each round first.
+by annotate_run.py), version = system_prompt_version of that row. Rows whose attack_succeeded is still NULL are written with
+ok = false, so decide.py counts them as failed requests per version instead of losing them: run annotate_run.py for each round first.
+The script STOPS if any row is still ungraded (the pairing below keeps only prompts with a graded row in every version, so a prompt
+that is fully ungraded in one round would vanish together with its failed rows). --allow-ungraded overrides this.
+PAIRED (default when the runs cover 2+ prompt versions): Garak samples different prompts each round (Oct 4 vs Oct 5: only 162 of
+~290 promptinject prompts were in both), so only prompts that appear in EVERY version's round are kept. Then every version is
+tested on the same attacks. The summary shows how many prompts were dropped per family. --all-prompts turns this off.
 variant: 'seen' if the exact prompt text is in one of the --seen replay sets (the 60 originals, the 116 paraphrases), else 'fresh'.
 Without --seen every row is 'live'. Use decide.py --variants fresh for the held-out test; 'seen' rows only show consistency with the replay.
 Only run ids starting with garak_ are accepted: PyRIT has 4 objectives and a rule-based scorer, too small and weak for the rule.
@@ -36,6 +41,8 @@ def main():
     ap.add_argument("--seen", nargs="*", default=[], help="replay set / paraphrase json files whose prompts count as already seen")
     ap.add_argument("--rounds-json")
     ap.add_argument("--out", required=True)
+    ap.add_argument("--allow-ungraded", action="store_true", help="carry on even if some rows have no attack_succeeded yet (the failed share can then be undercounted)")
+    ap.add_argument("--all-prompts", action="store_true", help="do not restrict to prompts that appear in every version's round")
     a = ap.parse_args()
     bad = [r for r in a.runs if not r.startswith("garak_")]
     if bad:
@@ -47,7 +54,7 @@ def main():
     if a.rounds_json:
         invalid = json.load(open(a.rounds_json, encoding="utf-8")).get("invalid", {})
     con = sqlite3.connect("file:" + pathlib.Path(a.db).resolve().as_posix() + "?mode=ro", uri=True)
-    rows_out, null_n, per_run = [], 0, collections.Counter()
+    rows_out, null_n, per_run, null_run = [], 0, collections.Counter(), collections.Counter()
     for run in a.runs:
         tok = run.split("_", 1)[1]
         if tok in invalid:
@@ -55,28 +62,45 @@ def main():
         n = 0
         for inp, succ, ver, pid in con.execute("SELECT input, attack_succeeded, system_prompt_version, probe_id FROM alerts WHERE run_id = ? ORDER BY id", (run,)):
             n += 1
-            if succ is None:
-                null_n += 1; continue
             rid = hashlib.sha1((inp or "").encode("utf-8")).hexdigest()[:12]
             var = ("seen" if (inp or "").strip() in seen else "fresh") if a.seen else "live"
-            rows_out.append({"family": pid or "unknown", "id": rid, "ok": True, "success": int(succ), "variant": var, "version": ver, "run_id": run})
+            if succ is None:
+                null_n += 1; null_run[run] += 1
+            rows_out.append({"family": pid or "unknown", "id": rid, "ok": succ is not None,
+                             "success": None if succ is None else int(succ), "variant": var, "version": ver, "run_id": run})
         if n == 0:
             print(f"WARNING: no rows for run id {run}")
         per_run[run] = n
+    if null_n and not a.allow_ungraded:
+        sys.exit(f"{null_n} rows have no attack_succeeded yet: {dict(null_run)}. Run annotate_run.py for those rounds first "
+                 f"(or pass --allow-ungraded). Nothing written.")
+    versions = sorted({r["version"] for r in rows_out}, key=str)
+    if not a.all_prompts and len(versions) >= 2:
+        ids_by_v = {v: {r["id"] for r in rows_out if r["version"] == v and r["ok"]} for v in versions}
+        common = set.intersection(*ids_by_v.values())
+        before = collections.defaultdict(lambda: collections.defaultdict(set))
+        for r in rows_out:
+            before[r["family"].split(".")[0]][r["version"]].add(r["id"])
+        rows_out = [r for r in rows_out if r["id"] in common]
+        print(f"paired: kept prompts that appear in all of v{', v'.join(map(str, versions))}")
+        for f in sorted(before):
+            kept = len({r["id"] for r in rows_out if r["family"].split(".")[0] == f})
+            sizes = ", ".join(f"v{v} {len(before[f][v])}" for v in versions)
+            print(f"  {f:14s} distinct prompts {sizes} -> in all versions {kept}")
+    elif len(versions) < 2:
+        print(f"note: the runs cover only version(s) {versions}; nothing to pair")
     with open(a.out, "w", encoding="utf-8") as fh:
         for r in rows_out:
             fh.write(json.dumps(r) + "\n")
-    print(f"wrote {len(rows_out)} rows to {a.out}  (rows per run: {dict(per_run)}; left out because attack_succeeded is NULL: {null_n})")
+    print(f"wrote {len(rows_out)} rows to {a.out}  (rows per run: {dict(per_run)}; not graded yet, written as failed: {dict(null_run) or 0})")
     if null_n:
         print("  -> run annotate_run.py for those rounds, then run this again")
-    by = collections.defaultdict(lambda: collections.defaultdict(set))
-    for r in rows_out:
-        by[(r["version"], r["variant"])]["ids"].add(r["id"])
-        by[(r["version"], r["variant"])]["n"].add((r["id"], len(by[(r["version"], r["variant"])]["n"])))
-    for (v, var), d in sorted(by.items(), key=lambda kv: (str(kv[0][0]), kv[0][1])):
-        succ = sum(r["success"] for r in rows_out if r["version"] == v and r["variant"] == var)
-        tot = sum(1 for r in rows_out if r["version"] == v and r["variant"] == var)
-        print(f"  v{v} {var:6s}: {len(d['ids'])} distinct prompts, {tot} requests, {100 * succ / max(tot, 1):.1f}% succeeded")
+    for v in versions:
+        for var in sorted({r["variant"] for r in rows_out}):
+            sel = [r for r in rows_out if r["version"] == v and r["variant"] == var and r["ok"]]
+            if sel:
+                succ = sum(r["success"] for r in sel)
+                print(f"  v{v} {var:6s}: {len({r['id'] for r in sel})} distinct prompts, {len(sel)} graded requests, {100 * succ / len(sel):.1f}% succeeded")
     fam = collections.Counter(r["family"].split(".")[0] for r in rows_out)
     print("  families:", dict(fam))
 

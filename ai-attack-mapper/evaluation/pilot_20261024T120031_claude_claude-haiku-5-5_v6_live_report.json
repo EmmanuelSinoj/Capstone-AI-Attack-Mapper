@@ -1,0 +1,53 @@
+{
+  "run_id": "pilot_20261024T120031_claude_claude-haiku-5-5_v6_live",
+  "model": "claude-haiku-5-5",
+  "prompt_version": "v6",
+  "prompt_fingerprint": "81ed96bf5722",
+  "replies": 299,
+  "valid": 294,
+  "failed_or_bad_json": [
+    {
+      "alert_id": 27697,
+      "repeat": 1,
+      "error": "backend: No text in Anthropic reply (stop_reason='refusal'); block types: []",
+      "raw_output_start": ""
+    },
+    {
+      "alert_id": 30027,
+      "repeat": 1,
+      "error": "backend: No text in Anthropic reply (stop_reason='refusal'); block types: []",
+      "raw_output_start": ""
+    },
+    {
+      "alert_id": 30281,
+      "repeat": 1,
+      "error": "backend: No text in Anthropic reply (stop_reason='refusal'); block types: []",
+      "raw_output_start": ""
+    },
+    {
+      "alert_id": 30395,
+      "repeat": 1,
+      "error": "backend: No text in Anthropic reply (stop_reason='refusal'); block types: ['thinking']",
+      "raw_output_start": ""
+    },
+    {
+      "alert_id": 30712,
+      "repeat": 1,
+      "error": "backend: No text in Anthropic reply (stop_reason='refusal'); block types: []",
+      "raw_output_start": ""
+    }
+  ],
+  "valid_after_retry_or_repair": [
+    {
+      "alert_id": 20270,
+      "repeat": 1,
+      "note": "valid after 2 attempts"
+    }
+  ],
+  "predicted_category_counts": {
+    "B": 196,
+    "C": 20,
+    "null": 76,
+    "A": 2
+  }
+}
