@@ -127,7 +127,38 @@ def live_rows(_mtime: float) -> pd.DataFrame:
     df["caught"] = df["category"].fillna("").str.strip() != ""
     inv = invalid_tokens()
     df["invalid_round"] = df["run_id"].map(lambda r: any(r.endswith("_" + t) for t in inv))
+    df["ts"] = pd.to_datetime(df["timestamp"], utc=True, format="ISO8601", errors="coerce")
+    df["severity"] = event_severity(df)
     return df
+
+
+def event_severity(df: pd.DataFrame) -> pd.Series:
+    """SIEM-style severity per event: an attack that worked and was missed is the worst case."""
+    worked, failed = df["attack_succeeded"] == 1, df["attack_succeeded"] == 0
+    harmless, caught = df["harmless"], df["caught"]
+    sev = pd.Series("Info", index=df.index)
+    sev[~harmless & failed & ~caught] = "Low"
+    sev[~harmless & failed & caught] = "Medium"
+    sev[~harmless & worked & caught] = "High"
+    sev[~harmless & worked & ~caught] = "Critical"
+    sev[harmless & caught] = "False alarm"
+    return sev
+
+
+def window(df: pd.DataFrame) -> pd.DataFrame:
+    """Apply the sidebar time range (st.session_state['time_range'] = (start_date, end_date)) to rows with a 'ts' column."""
+    tr = st.session_state.get("time_range")
+    if df.empty or "ts" not in df.columns or not tr or len(tr) != 2:
+        return df
+    d = df["ts"].dt.date
+    return df[(d >= tr[0]) & (d <= tr[1])]
+
+
+def time_bounds(_mtime: float):
+    df = live_rows(_mtime)
+    if df.empty or df["ts"].isna().all():
+        return None
+    return df["ts"].min().date(), df["ts"].max().date()
 
 
 @st.cache_data(show_spinner=False)
@@ -198,7 +229,8 @@ def mapper_results(_mtime: float, run_id: str) -> pd.DataFrame:
     def call(r):
         if not r["valid_json"]:
             return "Failed (API refused)"
-        return r["predicted_category"] or "No attack"
+        pc = r["predicted_category"]
+        return pc if isinstance(pc, str) and pc.strip() else "No attack"   # NULL may arrive as None or NaN
     df["mapper_call"] = df.apply(call, axis=1)
 
     def group(r):

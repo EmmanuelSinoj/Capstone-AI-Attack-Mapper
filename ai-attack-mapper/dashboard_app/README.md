@@ -32,5 +32,13 @@ PowerShell: `$env:ALERTS_DB_PATH = "alert_store\alerts.db"`
 - Mapper calls come from `mapper_results` (or the alert row for production classifications).
 - Classification reuses `mapper/matrix_data.py` and `mapper/matrix_render.py` for the framework matrix.
 
+## Layout
+
+Dark, SIEM-style console: each page has KPI tiles, titled panels (charts, top-N tables, event tables) and an
+**About this page** button (top right) that holds the method notes, so the page itself shows only the numbers.
+Events carry a severity: Critical = attack worked and was missed, High = worked and caught, Medium = failed but
+flagged, Low = failed and not flagged, False alarm = harmless message flagged. The sidebar time range filters the
+events on Overview, Attack campaigns, Detection and the Alert explorer.
+
 Design changes should go in `ui.py` and the pages; keep `data.py` as the single source of the data rules.
-The theme is in `.streamlit/config.toml`.
+The theme is in `ai-attack-mapper/.streamlit/config.toml` (start Streamlit from the `ai-attack-mapper` folder).

@@ -6,17 +6,26 @@ import streamlit as st
 import data
 import ui
 
-st.title("Alert explorer")
-ui.intro("Follow a single alert end to end: what was sent, what the chatbot replied, whether the attack worked, what the "
-         "detector and the Mapper said, and what response was recommended.")
+ABOUT = """
+**What this page shows.** Search the events and follow a single alert end to end: what was sent, what the chatbot replied,
+whether the attack worked, what the detector and the Mapper said, and the recommended response.
+
+**Severity**: Critical = attack worked and was missed; High = worked and caught; Medium = failed but flagged;
+Low = failed and not flagged; False alarm = harmless message flagged.
+
+Rounds where the detector failed are left out. The sidebar time range applies. The table shows up to 2,000 events;
+type an alert id to open any alert directly.
+"""
+ui.header("Alert explorer", "Search security events and open one to see the full chain.", ABOUT, "Investigate")
 
 mt = data.db_mtime()
-df = data.explorer_rows(mt)
+df = data.window(data.explorer_rows(mt))
 if df.empty:
     ui.no_data("No live alerts in the alert store yet.")
     st.stop()
 
-f1, f2, f3, f4 = st.columns(4)
+f0, f1, f2, f3, f4 = st.columns(5)
+sev = f0.multiselect("Severity", ui.SEVERITY, placeholder="Any")
 outcome = f1.selectbox("Outcome", ["Any", "Attack worked", "Attack failed", "Harmless message"])
 det = f2.selectbox("Detector", ["Any", "Caught", "Missed"])
 fams = sorted(df.loc[~df["harmless"], "family"].unique())
@@ -26,6 +35,8 @@ call = f4.selectbox("Mapper", calls, index=1 if (df["mapper_call"] != "Not class
 q = st.text_input("Alert id (opens it directly)", placeholder="e.g. 31673")
 
 v = df[~df["invalid_round"]]
+if sev:
+    v = v[v["severity"].isin(sev)]
 if outcome == "Attack worked":
     v = v[~v["harmless"] & (v["attack_succeeded"] == 1)]
 elif outcome == "Attack failed":
@@ -41,15 +52,20 @@ if call == "Classified by the Mapper":
 elif call != "Any":
     v = v[v["mapper_call"] == call]
 
-table = v[["id", "run_id", "family", "probe_id", "attack_succeeded", "caught", "mapper_call", "mapper_confidence"]].copy()
+table = v[["id", "ts", "severity", "run_id", "family", "probe_id", "attack_succeeded", "caught", "mapper_call", "mapper_confidence"]].copy()
+table["ts"] = table["ts"].dt.strftime("%d %b %H:%M:%S")
 table.loc[v["harmless"], "family"] = "harmless"
 table["attack_succeeded"] = table["attack_succeeded"].map({1: "worked", 0: "failed"}).fillna("–")
 table["caught"] = table["caught"].map({True: "caught", False: "missed"})
-table = table.rename(columns={"id": "Alert", "run_id": "Round", "family": "Family", "probe_id": "Probe", "attack_succeeded": "Attack",
+table = table.rename(columns={"id": "Alert", "ts": "Time (UTC)", "severity": "Severity", "run_id": "Round", "family": "Family", "probe_id": "Probe", "attack_succeeded": "Attack",
                               "caught": "Detector", "mapper_call": "Mapper", "mapper_confidence": "Confidence"}).sort_values("Alert", ascending=False)
-st.caption(f"{len(table):,} alerts match (rounds with a failed detector are left out). Select a row to open it.")
-ev = st.dataframe(table.head(2000), hide_index=True, width="stretch", height=300, on_select="rerun", selection_mode="single-row",
-                  column_config={"Confidence": st.column_config.NumberColumn(format="%.2f")})
+sc = v["severity"].value_counts()
+ui.kpis([(lvl, f"{int(sc.get(lvl, 0)):,}", "events", {"Critical": "bad", "High": "warn", "False alarm": "warn"}.get(lvl))
+         for lvl in ["Critical", "High", "Medium", "Low", "False alarm"]])
+with ui.panel("Events", f"{len(table):,} match · select a row to open it"):
+    ev = st.dataframe(ui.sev_style(table.head(2000).reset_index(drop=True)), hide_index=True, width="stretch", height=320,
+                      on_select="rerun", selection_mode="single-row",
+                      column_config={"Confidence": st.column_config.NumberColumn(format="%.2f")})
 
 alert_id = None
 if q.strip().isdigit():
@@ -64,22 +80,21 @@ if a is None:
     st.warning(f"Alert {alert_id} not found.")
     st.stop()
 
-st.divider()
 harmless = (a.get("probe_id") or "").startswith(data.HARMLESS)
 worked = a.get("attack_succeeded")
 caught = bool((a.get("category") or "").strip())
 d = data.parse_detector(a.get("detector"))
 tags = [f"Round {a.get('run_id') or '–'}", f"Probe {a.get('probe_id') or '–'}", f"Prompt v{a.get('system_prompt_version') or '?'}"]
-st.markdown(f"### Alert {alert_id}  " + "".join(f'<span class="tag">{html.escape(t)}</span>' for t in tags), unsafe_allow_html=True)
+lvl = df.loc[df["id"] == alert_id, "severity"]
+st.markdown(f"### Alert {alert_id}  " + (ui.badge(lvl.iloc[0]) + " " if len(lvl) else "") + "".join(f'<span class="tag">{html.escape(t)}</span>' for t in tags), unsafe_allow_html=True)
 
 c1, c2 = st.columns([3, 2])
-with c1:
+with c1, ui.panel("Request and reply"):
     st.markdown("**Sent to the chatbot**")
     st.code(a.get("input") or "", language=None, wrap_lines=True)
     st.markdown("**Chatbot reply**")
     st.code(a.get("output") or "", language=None, wrap_lines=True)
-with c2:
-    st.markdown("**Verdicts**")
+with c2, ui.panel("Verdicts"):
     if harmless:
         ui.callout("Harmless customer message: " + ("<b>flagged by the detector (false alarm)</b>" if caught else "not flagged (correct)"),
                    "bad" if caught else "good")
@@ -130,19 +145,19 @@ with c2:
                         unsafe_allow_html=True)
         st.caption(f"Source: {mp.get('source')}")
 
-st.markdown("**Response**")
-pb = a.get("playbook")
-if pb:
-    import json
-    try:
-        p = json.loads(pb)
-    except ValueError:
-        p = {"summary": pb}
-    st.markdown(f"{html.escape(str(p.get('summary', '')))}")
-    for i, stp in enumerate(p.get("containment_steps") or [], 1):
-        st.markdown(f"{i}. {stp}")
-    if p.get("recommended_control"):
-        st.caption(f"Recommended control: {p['recommended_control']}")
-else:
-    st.caption("No playbook for this alert yet.")
-st.caption("Hardening applied to this alert's attack: " + ("yes" if a.get("hardening_applied") else "no"))
+with ui.panel("Response"):
+    pb = a.get("playbook")
+    if pb:
+        import json
+        try:
+            p = json.loads(pb)
+        except ValueError:
+            p = {"summary": pb}
+        st.markdown(f"{html.escape(str(p.get('summary', '')))}")
+        for i, stp in enumerate(p.get("containment_steps") or [], 1):
+            st.markdown(f"{i}. {stp}")
+        if p.get("recommended_control"):
+            st.caption(f"Recommended control: {p['recommended_control']}")
+    else:
+        st.caption("No playbook for this alert yet.")
+    st.caption("Hardening applied to this alert's attack: " + ("yes" if a.get("hardening_applied") else "no"))

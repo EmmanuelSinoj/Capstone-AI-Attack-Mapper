@@ -1,10 +1,11 @@
-"""AI Attack Mapper dashboard: one app, one page per part of the pipeline.
+"""AI Attack Mapper dashboard: one app, one page per part of the pipeline, in a dark SIEM-style layout.
 
   cd ai-attack-mapper
   streamlit run dashboard_app/app.py
 
 Reads the shared alert store read-only. Database: ALERTS_DB_PATH (default alert_store/alerts.db).
 In PowerShell:  $env:ALERTS_DB_PATH = "alert_store\\alerts.db"
+The theme comes from ai-attack-mapper/.streamlit/config.toml (start Streamlit from the ai-attack-mapper folder).
 """
 import sys
 from pathlib import Path
@@ -35,9 +36,14 @@ nav = st.navigation({
 })
 
 with st.sidebar:
-    st.markdown("**AI Attack Mapper**")
+    st.markdown("**AI Attack Mapper**  \n<span class='muted'>Security console</span>", unsafe_allow_html=True)
     if data.DB_PATH.exists():
         st.caption(f"Alert store: `{data.DB_PATH.name}`")
+        bounds = data.time_bounds(data.db_mtime())
+        if bounds:
+            tr = st.date_input("Time range", value=bounds, min_value=bounds[0], max_value=bounds[1], format="DD/MM/YYYY",
+                               help="Filters attack and harmless events on Overview, Attack campaigns, Detection and the Alert explorer.")
+            st.session_state["time_range"] = tr if isinstance(tr, (tuple, list)) and len(tr) == 2 else bounds
     else:
         st.error(f"Alert store not found: {data.DB_PATH}. Set ALERTS_DB_PATH.")
     if st.button("Refresh data", icon=":material/refresh:", width="stretch"):

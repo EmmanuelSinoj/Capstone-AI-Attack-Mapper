@@ -1,10 +1,13 @@
-# Shared dashboard theme (Oct 27). Streamlit reads this when started from the ai-attack-mapper folder.
+# Shared dashboard theme (dark, SIEM-style console). Streamlit reads this when started from the ai-attack-mapper folder.
 [theme]
 base = "dark"
 primaryColor = "#38BDF8"
-backgroundColor = "#0F172A"
-secondaryBackgroundColor = "#1E293B"
+backgroundColor = "#0B1220"
+secondaryBackgroundColor = "#131C2E"
 textColor = "#E2E8F0"
+borderColor = "#24314A"
+showWidgetBorder = true
+baseRadius = "6px"
 font = "sans serif"
 
 [browser]

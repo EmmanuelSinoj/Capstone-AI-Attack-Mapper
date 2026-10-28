@@ -4,9 +4,12 @@ import streamlit as st
 import data
 import ui
 
-st.title("Playbooks")
-ui.intro("The recommended response for each classified alert: what happened, the containment steps, and the defensive "
-         "control family it maps to (from the project's Category E controls crosswalk).")
+ABOUT = """
+**What this page shows.** The recommended response for each classified alert: what happened, the containment steps, and the
+defensive control family it maps to (from the project's Category E controls crosswalk). Alerts whose attack was already
+patched by auto-hardening note the action already taken.
+"""
+ui.header("Playbooks", "Recommended response and defensive control for each classified alert.", ABOUT, "Respond")
 
 mt = data.db_mtime()
 pb = data.playbooks(mt)
@@ -19,9 +22,10 @@ ui.kpis([("Playbooks", f"{len(pb):,}", "alerts with a recommended response", Non
          ("Already hardened", f"{int(pb['hardening_applied'].fillna(0).sum())}", "alerts whose attack was already patched", None)])
 
 cc = pb["control"].value_counts().rename_axis("control").reset_index(name="n")
-bars = alt.Chart(cc).mark_bar(cornerRadiusEnd=4, color=ui.ACCENT).encode(
-    x=alt.X("n:Q", title="Playbooks"), y=alt.Y("control:N", title=None, sort="-x"), tooltip=["control", "n"])
-st.altair_chart(ui.chart(bars, 40 * max(len(cc), 2)), width="stretch")
+with ui.panel("Playbooks by recommended control"):
+    bars = alt.Chart(cc).mark_bar(cornerRadiusEnd=3, color=ui.ACCENT).encode(
+        x=alt.X("n:Q", title="Playbooks"), y=alt.Y("control:N", title=None, sort="-x"), tooltip=["control", "n"])
+    st.altair_chart(ui.chart(bars, 40 * max(len(cc), 2)), width="stretch")
 
 control = st.selectbox("Recommended control", ["All"] + list(cc["control"]))
 view = pb if control == "All" else pb[pb["control"] == control]
