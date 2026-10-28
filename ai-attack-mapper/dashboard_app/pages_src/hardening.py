@@ -32,8 +32,10 @@ history = data.hardening_history()
 decisions = [h for h in history if h.get("decision")]
 latest = data.latest_fresh_decision(decisions)
 util = data.utility_checks()
+active = data.active_prompt_version()
 ui.kpis([
-    ("Prompt versions", f"{len(versions)}", f"latest v{versions[-1]['version']}" if versions else "none found", "accent"),
+    ("Prompt versions", f"{len(versions)}", (f"latest v{versions[-1]['version']}" if versions else "none found")
+     + (f", active v{active}" if active is not None else ", active unknown (testbed not reachable)"), "accent"),
     ("Rules in latest version", f"{len(versions[-1]['rules'])}" if versions else "–", "added countermeasure rules", None),
     ("Latest decision (fresh rounds)", latest["decision"] if latest else "Pending",
      f"v{latest.get('candidate')} vs v{latest.get('parent')}" if latest else "after the fresh attack rounds",

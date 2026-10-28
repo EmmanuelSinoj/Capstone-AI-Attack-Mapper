@@ -31,6 +31,7 @@ DB_PATH = Path(os.environ.get("ALERTS_DB_PATH") or (ROOT / "alert_store" / "aler
 PROMPTS_DIR = Path(os.environ.get("PROMPTS_DIR") or (ROOT / "testbed" / "prompts"))
 HARDENING_DIR = Path(os.environ.get("HARDENING_DIR") or (ROOT / "auto_hardening"))
 REPORTS_DIR = Path(os.environ.get("REPORTS_DIR") or (ROOT / "attack_generation" / "reports"))
+TESTBED_URL = os.environ.get("TESTBED_URL", "http://localhost:8000").rstrip("/")
 EVAL_DIR = ROOT / "evaluation"
 HARMLESS = ("benign.", "utility.")
 ATTACK_ROUND = re.compile(r"^(garak|pyrit)_")
@@ -302,6 +303,18 @@ def prompt_versions() -> list:
             out.append({"version": int(n or 0), "rules": [l.strip() for l in body if re.match(r"^\s*\d+\.\s", l)],
                         "text": "\n".join(body).strip()})
     return sorted(out, key=lambda v: v["version"])
+
+
+@st.cache_data(show_spinner=False, ttl=30)
+def active_prompt_version() -> int | None:
+    """The prompt version the testbed is answering with right now (GET /prompts 'active'), or None if unreachable."""
+    import urllib.request
+    try:
+        with urllib.request.urlopen(TESTBED_URL + "/prompts", timeout=2) as r:
+            v = json.loads(r.read().decode()).get("active")
+        return int(v) if v is not None else None
+    except Exception:  # noqa: BLE001  testbed down or not reachable from here
+        return None
 
 
 def hardening_history() -> list:

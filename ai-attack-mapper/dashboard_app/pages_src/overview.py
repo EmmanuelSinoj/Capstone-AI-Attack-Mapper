@@ -46,12 +46,21 @@ versions = data.prompt_versions()
 decisions = [h for h in data.hardening_history() if h.get("decision")]
 latest = data.latest_fresh_decision(decisions)
 n_pb = len(data.playbooks(mt))
+active = data.active_prompt_version()
+newest = versions[-1]["version"] if versions else None
+if active is None:
+    act = "active version unknown (testbed not reachable)"
+elif newest is not None and newest != active:
+    act = f"active v{active}; v{newest} not activated"
+else:
+    act = f"active v{active}"
+harden_note = f"latest version; {act}; fresh-round decision: {latest['decision'] if latest else 'pending'}"
 
 stages = [
     ("Attack", f"{s['attacks_sent']:,}", f"requests sent; {s['worked']:,} worked"),
     ("Detect", ui.pct(s["worked_caught"], s["worked"]), f"of successful attacks caught; {missed:,} missed"),
     ("Classify", ui.pct(mapper_b, len(atk)) if len(atk) else "–", f"of {len(atk)} sampled live attacks called B" if len(atk) else "no live Mapper run"),
-    ("Harden", f"v{versions[-1]['version']}" if versions else "–", f"fresh-round decision: {latest['decision']}" if latest else "fresh-round decision pending"),
+    ("Harden", f"v{versions[-1]['version']}" if versions else "–", harden_note),
     ("Respond", f"{n_pb:,}", "alerts with a defense playbook"),
 ]
 st.markdown('<div class="flow">' + '<span class="arrow">›</span>'.join(
@@ -75,7 +84,7 @@ with c1:
         g = t.groupby(["hour", "severity"]).size().reset_index(name="n")
         g["slot"] = g["hour"].dt.strftime("%d %b %H:00")
         bars = alt.Chart(g).mark_bar(cornerRadiusTopLeft=2, cornerRadiusTopRight=2).encode(
-            x=alt.X("slot:O", title="Hour (UTC)", sort=sorted(g["slot"].unique(), key=lambda x: pd.to_datetime(x, format="%d %b %H:%M")),
+            x=alt.X("slot:O", title="Hour (UTC)", sort=list(g.drop_duplicates("slot").sort_values("hour")["slot"]),
                     axis=alt.Axis(labelAngle=-35)),
             y=alt.Y("n:Q", title="Events", stack="zero"),
             color=alt.Color("severity:N", title=None, sort=ui.SEVERITY,

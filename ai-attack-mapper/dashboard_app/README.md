@@ -18,6 +18,7 @@ Settings (environment variables, all optional):
 | `HARDENING_DIR` | `auto_hardening` | `history.jsonl` decisions, `utility_*.csv` checks |
 | `REPORTS_DIR` | `attack_generation/reports` | `rounds.json` (invalid rounds) |
 | `INVALID_ROUNDS` | `20261005_v6-2` | used when `rounds.json` is not present |
+| `TESTBED_URL` | `http://localhost:8000` | testbed API; the active prompt version comes from `GET /prompts` |
 
 PowerShell: `$env:ALERTS_DB_PATH = "alert_store\alerts.db"`
 
