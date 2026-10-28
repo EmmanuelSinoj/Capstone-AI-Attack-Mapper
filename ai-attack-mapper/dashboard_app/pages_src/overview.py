@@ -29,6 +29,7 @@ mapper_harm_b = int((hl["mapper_call"] == "B").sum()) if not mres.empty else 0
 
 versions = data.prompt_versions()
 decisions = [h for h in data.hardening_history() if h.get("decision")]
+latest = data.latest_fresh_decision(decisions)
 missed = s["worked"] - s["worked_caught"]
 
 stages = [
@@ -37,7 +38,7 @@ stages = [
     ("Classify", ui.pct(mapper_b, len(atk)) if len(atk) else "–",
      f"of {len(atk)} sampled live attacks confirmed as prompt injection (B) by the Mapper"),
     ("Harden", f"v{versions[-1]['version']}" if versions else "–",
-     (f"latest prompt version; last decision: {decisions[-1]['decision']}" if decisions else "latest prompt version; decision pending")),
+     (f"latest prompt version; fresh-round decision: {latest['decision']}" if latest else "latest prompt version; fresh-round decision pending")),
     ("Respond", f"{len(data.playbooks(mt))}", "alerts with a defense playbook"),
 ]
 flow = '<span class="arrow">→</span>'.join(
@@ -61,12 +62,14 @@ if not mres.empty:
     if len(enc):
         ui.callout(f"<b>Encoded attacks are the Mapper's weak spot:</b> {int((enc['mapper_call'] == 'B').sum())} of {len(enc)} called B; "
                    "encoded text often reads as meaningless.", "warn")
-if not decisions:
-    ui.callout("<b>Auto-hardening has no accept/reject decision yet.</b> Fresh rounds on the original and hardened prompts are "
-               "compared on the Auto-hardening page once they are graded.", "warn")
+if not latest:
+    ui.callout("<b>Auto-hardening has no decision on fresh rounds yet.</b> Fresh rounds on the original and hardened prompts are "
+               "compared on the Auto-hardening page once they are graded"
+               + (" (earlier replay tests on seen prompts are listed there)." if decisions else "."), "warn")
 else:
-    d = decisions[-1]
-    ui.callout(f"<b>Latest hardening decision: {d['decision']}</b> for prompt v{d.get('candidate')} against v{d.get('parent')}.",
-               "good" if d["decision"] == "ACCEPT" else "warn")
+    d = latest
+    t = data.decision_test(d)
+    ui.callout(f"<b>Latest hardening decision on fresh rounds: {d['decision']}</b> for prompt v{d.get('candidate')} against "
+               f"v{d.get('parent')} (target families: {t['targets']}).", "good" if d["decision"] == "ACCEPT" else "warn")
 if not len(data.playbooks(mt)):
     ui.callout("<b>No defense playbooks yet.</b> They appear once playbook generation has run.", "warn")

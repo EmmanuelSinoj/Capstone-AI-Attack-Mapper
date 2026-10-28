@@ -284,6 +284,27 @@ def hardening_history() -> list:
     return rows
 
 
+def decision_test(d: dict) -> dict:
+    """What a history.jsonl decision was run on. Entries without 'variants' come from the first decide.py, whose
+    attack test always used the replay sets (original + paraphrase), i.e. prompts the hardening had already seen."""
+    variants = d.get("variants") or ["original", "paraphrase"]
+    if any(v in ("original", "paraphrase", "seen") for v in variants):
+        kind = "Replay test (seen prompts)"
+    elif "fresh" in variants:
+        kind = "Fresh rounds (unseen prompts)"
+    else:
+        kind = "Live rounds"
+    targets = d.get("target_families") or []
+    return {"kind": kind, "fresh": kind.startswith("Fresh") or kind == "Live rounds",
+            "variants": ", ".join(variants), "targets": ", ".join(targets) if targets else "all families pooled"}
+
+
+def latest_fresh_decision(decisions: list) -> dict | None:
+    """The most recent decision made on fresh/live rounds; replay tests on seen prompts do not count."""
+    fresh = [d for d in decisions if decision_test(d)["fresh"]]
+    return fresh[-1] if fresh else None
+
+
 def utility_checks() -> list:
     """Harmless-message refusal checks written by utility_check.py (utility_<old>_<new>_<stamp>.csv)."""
     out = []
