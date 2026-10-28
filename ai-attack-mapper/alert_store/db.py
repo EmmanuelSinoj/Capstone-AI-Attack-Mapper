@@ -291,9 +291,11 @@ def save_classification(conn: sqlite3.Connection, alert_id: int, result: dict) -
 def get_mapper_queue(conn: sqlite3.Connection, source: Optional[str] = None,
                      limit: Optional[int] = None) -> list:
     """Ids of alerts still waiting for the Mapper: every unclassified synthetic alert,
-    and every unclassified live alert the detector flagged (category is set)."""
+    every unclassified live alert the detector flagged (category is set), and every
+    unclassified live attack that worked (attack_succeeded = 1), even if the detector
+    missed it -- those are the alerts auto-hardening needs most."""
     query = ("SELECT id FROM alerts WHERE classified_at IS NULL "
-             "AND (source = 'synthetic' OR category IS NOT NULL)")
+             "AND (source = 'synthetic' OR category IS NOT NULL OR attack_succeeded = 1)")
     params: list = []
     if source is not None:
         query += " AND source = ?"

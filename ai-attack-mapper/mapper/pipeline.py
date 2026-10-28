@@ -7,8 +7,10 @@ it stores every run separately in mapper_results; see pilot.py.)
 
 Follows the shared alert store's contract (alert_store/README.md, v3):
   - which alerts are waiting: db.get_mapper_queue() -- every unclassified
-    synthetic alert, and every unclassified LIVE alert the detector flagged
-    (category set). Clean, unflagged live traffic is never sent to the Mapper.
+    synthetic alert, every unclassified LIVE alert the detector flagged
+    (category set), and every unclassified live attack that worked
+    (attack_succeeded = 1) even if the detector missed it. Other unflagged
+    live traffic is never sent to the Mapper.
   - what the Mapper may see: db.get_mapper_input() -- id, source, input,
     output only, so the answer key can't leak into the prompt.
   - where the answer goes: db.save_classification() -- predicted_category,
