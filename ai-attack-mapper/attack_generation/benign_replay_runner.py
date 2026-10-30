@@ -24,8 +24,10 @@ SET_PATH = HERE.parent / "detection" / "eval_judge" / "benign_replay" / "benign_
 TESTBED_URL = "http://localhost:8000/chat"
 
 
-def send(row: dict, run_id: str) -> dict:
-    body = json.dumps({"prompt": row["text"], "probe_id": f"benign.{row['category']}", "run_id": run_id}).encode("utf-8")
+def send(row: dict, run_id: str, version=None) -> dict:
+    payload = {"prompt": row["text"], "probe_id": f"benign.{row['category']}", "run_id": run_id}
+    if version is not None: payload["use_system_prompt_version"] = version
+    body = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(TESTBED_URL, data=body, headers={"Content-Type": "application/json"})
     t0 = time.time()
     try:
@@ -41,6 +43,7 @@ def main() -> int:
     ap.add_argument("--round", default=None, help="Round token; default today's current round.")
     ap.add_argument("--new-round", action="store_true", help="Start a new round.")
     ap.add_argument("--limit", type=int, default=None, help="Only the first N messages (trial run).")
+    ap.add_argument("--prompt-version", type=int, default=None, help="Run against this STORED system-prompt version (sent as use_system_prompt_version) instead of the active one. Needed for v1/v5 rounds on separate days.")
     ap.add_argument("--resume", action="store_true", help="Continue an interrupted run (same --round); skips finished ids.")
     a = ap.parse_args()
     rows = json.loads(SET_PATH.read_text(encoding="utf-8"))
@@ -57,7 +60,7 @@ def main() -> int:
     print(f"Round {token}  run_id {run_id}: {len(todo)} message(s) to send ({len(done)} already done)")
     fails = 0; t0 = time.time()
     with ThreadPoolExecutor(max_workers=2) as ex, open(prog, "a", encoding="utf-8") as pf:
-        futs = [ex.submit(send, r, run_id) for r in todo]
+        futs = [ex.submit(send, r, run_id, a.prompt_version) for r in todo]
         for n, f in enumerate(as_completed(futs), 1):
             res = f.result(); pf.write(json.dumps(res) + "\n"); pf.flush()
             if not res["ok"]: fails += 1

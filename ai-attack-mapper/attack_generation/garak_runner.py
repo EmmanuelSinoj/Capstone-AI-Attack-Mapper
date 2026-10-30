@@ -117,6 +117,8 @@ def main() -> int:
         action="store_true",
         help="Start a new round (use for a second Garak run on the same day).",
     )
+    parser.add_argument("--prompt-version", type=int, default=None, help="Run against this STORED system-prompt version (sent as use_system_prompt_version) instead of the active one.")
+    parser.add_argument("--seed", type=int, default=None, help="Garak random seed. Use the SAME seed and the same --probes for rounds that must be compared: the seed decides which prompts garak samples.")
     args = parser.parse_args()
 
     report_dir = pathlib.Path(args.report_dir)
@@ -133,10 +135,12 @@ def main() -> int:
     run_id = rounds.claim_run_id("garak", round_token)
     gen_cfg = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
     gen_cfg["rest"]["RestGenerator"]["req_template_json_object"]["run_id"] = run_id
+    if args.prompt_version is not None:
+        gen_cfg["rest"]["RestGenerator"]["req_template_json_object"]["use_system_prompt_version"] = args.prompt_version
     run_config_path = report_dir / f"garak_run_{timestamp}.generator.json"
     run_config_path.write_text(json.dumps(gen_cfg, indent=2), encoding="utf-8")
     (report_dir / f"garak_run_{timestamp}.runinfo.json").write_text(
-        json.dumps({"run_id": run_id, "round": round_token, "tool": "garak", "probes": args.probes, "started": timestamp,
+        json.dumps({"run_id": run_id, "round": round_token, "tool": "garak", "prompt_version": args.prompt_version, "seed": args.seed, "probes": args.probes, "started": timestamp,
                     "report_prefix": report_prefix}, indent=2), encoding="utf-8")
     print(f"Round {round_token}  run_id {run_id}")
 
@@ -151,6 +155,8 @@ def main() -> int:
         "--report_prefix",
         report_prefix,
     ]
+    if args.seed is not None:
+        cmd += ["--seed", str(args.seed)]
 
     if args.no_fast:
         print("Running at garak's STOCK settings (--no-fast): 5 generations/prompt,")
