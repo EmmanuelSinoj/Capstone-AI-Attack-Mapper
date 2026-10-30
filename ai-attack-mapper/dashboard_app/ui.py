@@ -1,11 +1,11 @@
-"""Shared look for the dashboard: a dark, SIEM-style console (panels, KPI tiles, severity badges, event tables).
+"""Shared look for the dashboard: a theme-aware, SIEM-style console (panels, KPI tiles, severity badges, event tables).
 
 Every page uses the same building blocks:
   header(title, subtitle, about)  page title, one-line subtitle and an "About this page" button with the method notes
   kpis([...])                     a row of KPI tiles
   panel(title, note)              a bordered panel with a title bar (use as a context manager)
   alert(level, title, text)       one item in a "needs attention" list
-  chart(altair_chart)             dark chart styling
+  chart(altair_chart)             theme-aware chart styling
 """
 from __future__ import annotations
 
@@ -16,15 +16,41 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
-BG, PANEL, PANEL2, BORDER = "#090F1B", "#101B2C", "#17263C", "#2A3C55"
-TEXT, MUTED, ACCENT = "#E8EFF8", "#A0B2CA", "#5CC8FF"
-GOOD, WARN, BAD, PURPLE, ORANGE = "#50D9AE", "#F5CE6A", "#FF7585", "#C0A1FF", "#FFA36A"
-TONE = {"good": GOOD, "warn": WARN, "bad": BAD, "accent": ACCENT, None: TEXT}
-
-# Event severity, SIEM style. Assigned in data.event_severity().
+# Theme values are resolved per session; never mutate shared module colours.
+_DARK = dict(BG="#090F1B", PANEL="#101B2C", PANEL2="#17263C", BORDER="#2A3C55",
+             TEXT="#E8EFF8", MUTED="#A0B2CA", ACCENT="#5CC8FF", GOOD="#50D9AE",
+             WARN="#F5CE6A", BAD="#FF7585", PURPLE="#C0A1FF", ORANGE="#FFA36A",
+             LOW="#80B4FF", SIDEBAR="#0D1625", HOVER="#456481")
+_LIGHT = dict(BG="#F4F7FB", PANEL="#FFFFFF", PANEL2="#E9EFF7", BORDER="#CBD5E1",
+              TEXT="#17263C", MUTED="#52647B", ACCENT="#006B9E", GOOD="#087D5C",
+              WARN="#926500", BAD="#C32F49", PURPLE="#7445B3", ORANGE="#B74D0C",
+              LOW="#2864BA", SIDEBAR="#EDF2F8", HOVER="#849BB6")
 SEVERITY = ["Critical", "High", "Medium", "Low", "False alarm", "Info"]
-SEV_COLOR = {"Critical": BAD, "High": ORANGE, "Medium": WARN, "Low": "#80B4FF", "False alarm": PURPLE, "Info": "#A0B2CA"}
-FAMILY_COLOR = {"promptinject": ACCENT, "dan": PURPLE, "encoding": ORANGE, "pyrit": GOOD, "harmless": MUTED}
+
+
+def _theme_type():
+    context = getattr(st, "context", None)
+    theme = getattr(context, "theme", None)
+    return "light" if getattr(theme, "type", None) == "light" else "dark"
+
+
+def _palette():
+    return _LIGHT if _theme_type() == "light" else _DARK
+
+
+def __getattr__(name):
+    """Keep ui.ACCENT and the existing palette dictionaries session-aware."""
+    p = _palette()
+    if name in p:
+        return p[name]
+    if name == "TONE":
+        return {"good": p["GOOD"], "warn": p["WARN"], "bad": p["BAD"], "accent": p["ACCENT"], None: p["TEXT"]}
+    if name == "SEV_COLOR":
+        return dict(zip(SEVERITY, (p[k] for k in ("BAD", "ORANGE", "WARN", "LOW", "PURPLE", "MUTED"))))
+    if name == "FAMILY_COLOR":
+        return {k: p[v] for k, v in dict(promptinject="ACCENT", dan="PURPLE", encoding="ORANGE", pyrit="GOOD", harmless="MUTED").items()}
+    raise AttributeError(name)
+
 
 # Explanations use the existing metric definitions; values still come from each page.
 SEVERITY_HELP = {
@@ -58,12 +84,12 @@ KPI_HELP = {
     "Defensive effectiveness": "Fresh-round comparison of the original and hardened prompts.",
 }
 
-CSS = f"""
+CSS = """
 <style>
   .stApp {{background:{BG}; color:{TEXT};}}
   .block-container, [data-testid="stMainBlockContainer"] {{padding:3.4rem 2rem 3rem; max-width:1600px;}}
   [data-testid="stHeader"] {{background:{BG}ed; border-bottom:1px solid {BORDER}70;}}
-  [data-testid="stSidebar"] {{background:#0D1625; border-right:1px solid {BORDER};}}
+  [data-testid="stSidebar"] {{background:{SIDEBAR}; border-right:1px solid {BORDER};}}
   [data-testid="stSidebarNav"] a {{border:1px solid transparent; border-radius:8px; transition:background .16s, border-color .16s;}}
   [data-testid="stSidebarNav"] a:hover {{background:{PANEL2}; border-color:{BORDER};}}
   [data-testid="stSidebarNav"] a[aria-current="page"] {{background:{PANEL2}; border-color:{BORDER}; box-shadow:inset 3px 0 {ACCENT};}}
@@ -104,7 +130,7 @@ CSS = f"""
     transition:border-color .18s, box-shadow .18s;}}
   [data-testid="stVerticalBlockBorderWrapper"]:has(.ptitle):hover,
   [data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"] .ptitle):hover {{
-    border-color:#456481 !important; box-shadow:0 4px 20px #00000016;}}
+    border-color:{HOVER} !important; box-shadow:0 4px 20px #00000016;}}
   /* Stretch sibling panels to their row's height without fixing content height. */
   [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"]:has(> [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"] .ptitle),
   [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlockBorderWrapper"]:has(.ptitle) {{flex:1 1 auto;}}
@@ -118,7 +144,7 @@ CSS = f"""
   .arrow {{align-self:center; color:{MUTED}; font-size:1rem;}}
   .al {{display:flex; gap:11px; align-items:flex-start; padding:11px 10px; border:1px solid {BORDER}; border-radius:8px;
          background:{BG}65; transition:background .16s, border-color .16s;}}
-  .al:hover {{background:{PANEL2}; border-color:#456481;}}
+  .al:hover {{background:{PANEL2}; border-color:{HOVER};}}
   .badge {{display:inline-block; white-space:nowrap; text-align:center; padding:3px 8px; border-radius:5px; font-size:.69rem;
            line-height:1.4; font-weight:700; color:var(--sev); background:color-mix(in srgb,var(--sev) 12%,{BG});
            border:1px solid color-mix(in srgb,var(--sev) 40%,{BORDER}); transition:filter .16s;}}
@@ -140,7 +166,7 @@ CSS = f"""
   /* The toolbar sits above this frame. Clipping it hides "Show chart" in data view. */
   [data-testid="stDataFrame"] {{border-radius:8px; overflow:visible; box-sizing:border-box;
                                border:1px solid {BORDER}; transition:border-color .16s;}}
-  [data-testid="stDataFrame"]:hover {{border-color:#456481;}}
+  [data-testid="stDataFrame"]:hover {{border-color:{HOVER};}}
   /* Native dataframes are canvas-based; their cell hover uses the Streamlit theme.
      This selector also supports any semantic tables rendered by Streamlit. */
   [data-testid="stTable"] tbody tr:hover {{background:{PANEL2};}}
@@ -178,11 +204,27 @@ CSS = f"""
     .kpi:hover, .kpi:focus-visible, .stage:hover, .stage:focus-visible {{transform:none;}}
   }}
 </style>
-"""
+""".format(**_DARK)
 
 
 def setup():
-    st.markdown(CSS, unsafe_allow_html=True)
+    # Streamlit owns native widget/table theming; custom HTML uses the same mode.
+    palette = _palette()
+    colours = {value: palette[key] for key, value in _DARK.items()}
+    import re
+    css = re.sub(r"#[0-9A-Fa-f]{6}", lambda m: colours.get(m.group(), m.group()), CSS)
+    st.markdown(css, unsafe_allow_html=True)
+    st.session_state["_dashboard_rendered_theme"] = _theme_type()
+    _sync_theme()
+
+
+@st.fragment(run_every=2)
+def _sync_theme():
+    # Native theme changes do not trigger a script rerun in some Streamlit
+    # versions. A lightweight fragment refreshes Python chart colours only
+    # when the browser theme changes; data queries are not polled here.
+    if st.session_state.get("_dashboard_rendered_theme") != _theme_type():
+        st.rerun()
 
 
 def header(title: str, subtitle: str = "", about: str = "", crumb: str = ""):
@@ -201,6 +243,7 @@ def header(title: str, subtitle: str = "", about: str = "", crumb: str = ""):
 
 def kpis(items):
     """items: (label, value, sub, tone) tuples; tone in good / warn / bad / accent / None."""
+    TONE, TEXT = __getattr__("TONE"), __getattr__("TEXT")
     cards = []
     for label, value, sub, tone in items:
         explanation = KPI_HELP.get(label, SEVERITY_HELP.get(label, f"{label}: {sub}" if sub else label))
@@ -237,6 +280,7 @@ def panel(title: str, note: str = ""):
 
 
 def badge(level: str) -> str:
+    SEV_COLOR, MUTED = __getattr__("SEV_COLOR"), __getattr__("MUTED")
     description = html.escape(SEVERITY_HELP.get(level, level), quote=True)
     return (f'<span class="badge" title="{description}" style="--sev:{SEV_COLOR.get(level, MUTED)}">'
             f'{html.escape(level)}</span>')
@@ -258,6 +302,7 @@ def pct(a, b, digits=1) -> str:
 
 def sev_style(df: pd.DataFrame, col: str = "Severity"):
     """Colour a severity column in st.dataframe."""
+    SEV_COLOR = __getattr__("SEV_COLOR")
     def f(v):
         c = SEV_COLOR.get(v)
         return f"color:{c}; font-weight:700" if c else ""
@@ -265,6 +310,8 @@ def sev_style(df: pd.DataFrame, col: str = "Severity"):
 
 
 def chart(c: alt.Chart, height: int = 240) -> alt.Chart:
+    TEXT, MUTED, BORDER, ACCENT, PURPLE, GOOD, ORANGE, WARN, BAD = (
+        _palette()[k] for k in ("TEXT", "MUTED", "BORDER", "ACCENT", "PURPLE", "GOOD", "ORANGE", "WARN", "BAD"))
     # Work on a copy. Hover changes only mark emphasis, never filters or scales.
     c = _chart_hover(c.copy(deep=True))
     return (c.properties(height=height, background="transparent",
@@ -288,6 +335,7 @@ def chart(c: alt.Chart, height: int = 240) -> alt.Chart:
 
 def _chart_hover(c):
     """Emphasise hovered bars, cells and arcs; preserve all chart data and encodings."""
+    TEXT, PANEL = __getattr__("TEXT"), __getattr__("PANEL")
     if isinstance(c, alt.LayerChart):
         c.layer = [_chart_hover(layer) for layer in c.layer]
     elif isinstance(c, alt.Chart):
