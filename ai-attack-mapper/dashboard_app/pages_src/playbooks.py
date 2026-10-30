@@ -9,7 +9,7 @@ ABOUT = """
 defensive control family it maps to (from the project's Category E controls crosswalk). Alerts whose attack was already
 patched by auto-hardening note the action already taken.
 """
-ui.header("Playbooks", "Recommended response and defensive control for each classified alert.", ABOUT, "Respond")
+ui.header("Playbooks", "Response steps and recommended defensive controls for classified alerts.", ABOUT, "Respond")
 
 mt = data.db_mtime()
 pb = data.playbooks(mt)
@@ -17,6 +17,7 @@ if pb.empty:
     ui.no_data("No playbooks in the alert store yet. They appear here once playbook generation has run on classified alerts.")
     st.stop()
 
+ui.scope(f"{len(pb):,} playbooks", "all classified alerts in the alert store")
 ui.kpis([("Playbooks", f"{len(pb):,}", "alerts with a recommended response", None),
          ("Control families used", f"{pb['control'].nunique()}", "distinct recommended controls", None),
          ("Already hardened", f"{int(pb['hardening_applied'].fillna(0).sum())}", "alerts whose attack was already patched", None)])
@@ -24,7 +25,8 @@ ui.kpis([("Playbooks", f"{len(pb):,}", "alerts with a recommended response", Non
 cc = pb["control"].value_counts().rename_axis("control").reset_index(name="n")
 with ui.panel("Playbooks by recommended control"):
     bars = alt.Chart(cc).mark_bar(cornerRadiusEnd=3, color=ui.ACCENT).encode(
-        x=alt.X("n:Q", title="Playbooks"), y=alt.Y("control:N", title=None, sort="-x"), tooltip=["control", "n"])
+        x=alt.X("n:Q", title="Playbooks"), y=alt.Y("control:N", title=None, sort="-x"), tooltip=[alt.Tooltip("control:N", title="Recommended control"),
+                     alt.Tooltip("n:Q", title="Playbooks", format=",")])
     st.altair_chart(ui.chart(bars, 40 * max(len(cc), 2)), width="stretch")
 
 control = st.selectbox("Recommended control", ["All"] + list(cc["control"]))

@@ -1,8 +1,7 @@
-import html
-
 import pandas as pd
 import streamlit as st
 
+import alert_view
 import data
 import ui
 
@@ -13,18 +12,37 @@ whether the attack worked, what the detector and the Mapper said, and the recomm
 **Severity**: Critical = attack worked and was missed; High = worked and caught; Medium = failed but flagged;
 Low = failed and not flagged; False alarm = harmless message flagged.
 
-Rounds where the detector failed are left out. The sidebar time range applies. The table shows up to 2,000 events;
+**Technique** filters on the framework IDs the Mapper assigned (ATLAS, OWASP LLM Top 10, ATT&CK); the same view is
+reachable from Classification, Browse by technique.
+
+**Source** switches between live alerts (attack and harmless rounds) and the synthetic alerts with their answer key.
+**Rounds** filters on whole sessions (all tools run together) or individual rounds. The Mapper column comes from the
+Mapper run chosen in the sidebar; alerts that run did not cover show "Not classified".
+
+Rounds where the detector failed are left out. The sidebar time range and prompt-version filter apply to live alerts. The table shows up to 2,000 events;
 type an alert id to open any alert directly.
 """
-ui.header("Alert explorer", "Search security events and open one to see the full chain.", ABOUT, "Investigate")
+ui.header("Alert explorer", "Search events and trace each alert from request to response.", ABOUT, "Investigate")
 
 mt = data.db_mtime()
-df = data.window(data.explorer_rows(mt))
-if df.empty:
-    ui.no_data("No live alerts in the alert store yet.")
+run = data.selected_run()
+scope_slot = st.empty()
+allrows = data.explorer_rows(mt, run)
+if allrows.empty:
+    ui.no_data("No alerts in the alert store yet.")
     st.stop()
+df = pd.concat([data.window(allrows[allrows["source"] == "live"]), allrows[allrows["source"] == "synthetic"]], ignore_index=True)
 
-f0, f1, f2, f3, f4 = st.columns(5)
+h0, h1, h2 = st.columns([1, 2.6, 2.4], gap="small")
+source = h0.selectbox("Source", ["Live", "Synthetic", "Both"])
+live_df = df[df["source"] == "live"]
+sessions = sorted(live_df["session"].dropna().unique(), reverse=True)
+rounds = sorted(live_df["run_id"].dropna().unique(), reverse=True)
+round_opts = [f"session:{x}" for x in sessions] + rounds
+rsel = h1.multiselect("Rounds", round_opts, placeholder="All rounds", disabled=source == "Synthetic",
+                      format_func=lambda r: f"Session {r[8:]} (all tools)" if r.startswith("session:") else r)
+
+f0, f1, f2, f3, f4 = st.columns([1.1, 1.2, 1, 1.15, 1.5], gap="small")
 sev = f0.multiselect("Severity", ui.SEVERITY, placeholder="Any")
 outcome = f1.selectbox("Outcome", ["Any", "Attack worked", "Attack failed", "Harmless message"])
 det = f2.selectbox("Detector", ["Any", "Caught", "Missed"])
@@ -32,9 +50,21 @@ fams = sorted(df.loc[~df["harmless"], "family"].unique())
 fam = f3.selectbox("Attack family", ["Any"] + fams)
 calls = ["Any", "Classified by the Mapper"] + sorted(c for c in df["mapper_call"].unique() if c != "Not classified")
 call = f4.selectbox("Mapper", calls, index=1 if (df["mapper_call"] != "Not classified").any() else 0)
-q = st.text_input("Alert id (opens it directly)", placeholder="e.g. 31673")
+FW = (("ATLAS", "atlas", "mapper_atlas"), ("OWASP LLM", "owasp_llm", "mapper_owasp"), ("ATT&CK", "attack", "mapper_attck"))
+techs = {}
+for _, key, col in FW:
+    for i in sorted({t for v in df[col].dropna() for t in data.ids(v)}):
+        techs[i] = alert_view.technique_label(key, i)
+tech = h2.multiselect("Technique", list(techs), format_func=lambda i: techs[i], placeholder="Any")
+q = st.text_input("Open alert by ID", placeholder="e.g. 31673")
 
 v = df[~df["invalid_round"]]
+if source != "Both":
+    v = v[v["source"] == source.lower()]
+if rsel and source != "Synthetic":
+    want_s = {r[8:] for r in rsel if r.startswith("session:")}
+    want_r = {r for r in rsel if not r.startswith("session:")}
+    v = v[(v["source"] == "synthetic") | v["session"].isin(want_s) | v["run_id"].isin(want_r)]
 if sev:
     v = v[v["severity"].isin(sev)]
 if outcome == "Attack worked":
@@ -51,18 +81,43 @@ if call == "Classified by the Mapper":
     v = v[v["mapper_call"] != "Not classified"]
 elif call != "Any":
     v = v[v["mapper_call"] == call]
+if tech:
+    want = set(tech)
+    v = v[v.apply(lambda r: bool(want & {t for _, _, col in FW for t in data.ids(r[col])}), axis=1)]
 
-table = v[["id", "ts", "severity", "run_id", "family", "probe_id", "attack_succeeded", "caught", "mapper_call", "mapper_confidence"]].copy()
+if "truth" not in v.columns:
+    v = v.assign(truth=None)
+table = v[["id", "ts", "severity", "run_id", "family", "probe_id", "attack_succeeded", "caught", "truth", "mapper_call", "mapper_confidence"]].copy()
+syn_mask = v["source"] == "synthetic"
 table["ts"] = table["ts"].dt.strftime("%d %b %H:%M:%S")
 table.loc[v["harmless"], "family"] = "harmless"
 table["attack_succeeded"] = table["attack_succeeded"].map({1: "worked", 0: "failed"}).fillna("–")
 table["caught"] = table["caught"].map({True: "caught", False: "missed"})
+table.loc[syn_mask, ["caught", "run_id", "probe_id"]] = "–"
+table["truth"] = table["truth"].fillna("–")
 table = table.rename(columns={"id": "Alert", "ts": "Time (UTC)", "severity": "Severity", "run_id": "Round", "family": "Family", "probe_id": "Probe", "attack_succeeded": "Attack",
-                              "caught": "Detector", "mapper_call": "Mapper", "mapper_confidence": "Confidence"}).sort_values("Alert", ascending=False)
-sc = v["severity"].value_counts()
-ui.kpis([(lvl, f"{int(sc.get(lvl, 0)):,}", "events", {"Critical": "bad", "High": "warn", "False alarm": "warn"}.get(lvl))
-         for lvl in ["Critical", "High", "Medium", "Low", "False alarm"]])
-with ui.panel("Events", f"{len(table):,} match · select a row to open it"):
+                              "caught": "Detector", "truth": "Answer key", "mapper_call": "Mapper", "mapper_confidence": "Confidence"}).sort_values("Alert", ascending=False)
+if source == "Live":
+    table = table.drop(columns=["Answer key"])
+elif source == "Synthetic":
+    table = table.drop(columns=["Time (UTC)", "Severity", "Round", "Family", "Probe", "Attack", "Detector"])
+lv_n, sy_n = int((v["source"] == "live").sum()), int(syn_mask.sum())
+with scope_slot.container():
+    ui.scope(f"{lv_n:,} live alerts" if source != "Synthetic" else "", f"{sy_n:,} synthetic alerts" if source != "Live" else "",
+             data.scope_versions(v[v["source"] == "live"]) if source != "Synthetic" else "",
+             data.scope_dates() if source != "Synthetic" else "", f"Mapper run {run}" if run else "latest Mapper result per alert")
+if source == "Synthetic":
+    sv = v[v["mapper_call"] != "Not classified"]
+    ok = int((sv["mapper_call"] == sv["truth"]).sum())
+    ui.kpis([("Synthetic alerts", f"{sy_n}", "with an answer key", None),
+             ("Classified in this run", f"{len(sv)}", f"Mapper run {run}" if run else "latest result", "accent"),
+             ("Match the answer key", ui.pct(ok, len(sv)), f"{ok} of {len(sv)}", "good"),
+             ("Do not match", f"{len(sv) - ok}", "open them below", "bad" if len(sv) - ok else "good")])
+else:
+    sc = v["severity"].value_counts()
+    ui.kpis([(lvl, f"{int(sc.get(lvl, 0)):,}", "events", {"Critical": "bad", "High": "warn", "False alarm": "warn"}.get(lvl))
+             for lvl in ["Critical", "High", "Medium", "Low", "False alarm"]])
+with ui.panel("Events", f"{len(table):,} matching events · select a row to inspect"):
     ev = st.dataframe(ui.sev_style(table.head(2000).reset_index(drop=True)), hide_index=True, width="stretch", height=320,
                       on_select="rerun", selection_mode="single-row",
                       column_config={"Confidence": st.column_config.NumberColumn(format="%.2f")})
@@ -75,89 +130,5 @@ elif ev and ev.selection and ev.selection.rows:
 if alert_id is None:
     st.stop()
 
-a = data.alert(mt, alert_id)
-if a is None:
-    st.warning(f"Alert {alert_id} not found.")
-    st.stop()
-
-harmless = (a.get("probe_id") or "").startswith(data.HARMLESS)
-worked = a.get("attack_succeeded")
-caught = bool((a.get("category") or "").strip())
-d = data.parse_detector(a.get("detector"))
-tags = [f"Round {a.get('run_id') or '–'}", f"Probe {a.get('probe_id') or '–'}", f"Prompt v{a.get('system_prompt_version') or '?'}"]
-lvl = df.loc[df["id"] == alert_id, "severity"]
-st.markdown(f"### Alert {alert_id}  " + (ui.badge(lvl.iloc[0]) + " " if len(lvl) else "") + "".join(f'<span class="tag">{html.escape(t)}</span>' for t in tags), unsafe_allow_html=True)
-
-c1, c2 = st.columns([3, 2])
-with c1, ui.panel("Request and reply"):
-    st.markdown("**Sent to the chatbot**")
-    st.code(a.get("input") or "", language=None, wrap_lines=True)
-    st.markdown("**Chatbot reply**")
-    st.code(a.get("output") or "", language=None, wrap_lines=True)
-with c2, ui.panel("Verdicts"):
-    if harmless:
-        ui.callout("Harmless customer message: " + ("<b>flagged by the detector (false alarm)</b>" if caught else "not flagged (correct)"),
-                   "bad" if caught else "good")
-    else:
-        ui.callout("Attack " + ("<b>worked</b>: the chatbot complied" if worked == 1 else "<b>failed</b>: the chatbot resisted" if worked == 0
-                                else "not graded yet"), "bad" if worked == 1 else "good")
-        ui.callout("Detector: " + ("<b>caught</b>" if caught else "<b>missed</b>") +
-                   f" · pattern rule: {d['heuristic_rule'] or 'none'} · judge model: {d['judge_label'] or '–'}",
-                   "good" if caught else ("bad" if worked == 1 else "warn"))
-    mp = a.get("mapper")
-    st.markdown("**Mapper classification**")
-    if not mp:
-        st.caption("Not classified by the Mapper.")
-    elif not mp.get("valid_json"):
-        ui.callout(f"Classification failed: {html.escape(str(mp.get('error') or 'no valid reply'))}", "warn")
-    else:
-        cat = mp.get("predicted_category") or "No attack (out of scope)"
-        conf = mp.get("confidence")
-        sev = None
-        try:
-            from mapper.severity import severity_from_fields
-            sev = severity_from_fields(mp.get("predicted_category"), mp.get("sub_cluster"), mp.get("adversarial"), conf,
-                                       in_scope=bool(mp.get("in_scope"))).get("severity")
-        except Exception:  # noqa: BLE001
-            pass
-        gate = mp.get("predicted_category") == "B" and conf is not None and conf >= data.GATE_THRESHOLD
-        ui.kpis([("Category", cat, mp.get("sub_cluster") or "", "accent"),
-                 ("Confidence", f"{conf:.2f}" if conf is not None else "–", "passes the hardening gate" if gate else "below the gate or not B",
-                  "good" if gate else None),
-                 ("Severity", sev or "–", mp.get("lifecycle_phase") or "", "bad" if sev in ("High", "Critical") else None)])
-        try:
-            from mapper import framework_reference as fw
-        except ImportError:
-            fw = None
-        for label, key, col in (("ATLAS", "atlas", "atlas_technique"), ("OWASP LLM", "owasp_llm", "owasp_category"),
-                                ("ATT&CK", "attack", "attck_technique")):
-            lst = data.ids(mp.get(col))
-            if not lst:
-                continue
-            parts = []
-            for i in lst:
-                r = fw.lookup(key, i) if fw else None
-                name = f" {html.escape(r.name)}" if r and r.resolved and r.name else ""
-                parts.append(f'<a href="{r.url}" target="_blank">{html.escape(i)}</a>{name}' if r and r.url else html.escape(i) + name)
-            st.markdown(f"<span class='muted'>{label}:</span> " + " · ".join(parts), unsafe_allow_html=True)
-        if mp.get("rationale"):
-            st.markdown(f'<div class="callout good" style="border-left-color:{ui.ACCENT}"><b>Rationale.</b> {html.escape(mp["rationale"])}</div>',
-                        unsafe_allow_html=True)
-        st.caption(f"Source: {mp.get('source')}")
-
-with ui.panel("Response"):
-    pb = a.get("playbook")
-    if pb:
-        import json
-        try:
-            p = json.loads(pb)
-        except ValueError:
-            p = {"summary": pb}
-        st.markdown(f"{html.escape(str(p.get('summary', '')))}")
-        for i, stp in enumerate(p.get("containment_steps") or [], 1):
-            st.markdown(f"{i}. {stp}")
-        if p.get("recommended_control"):
-            st.caption(f"Recommended control: {p['recommended_control']}")
-    else:
-        st.caption("No playbook for this alert yet.")
-    st.caption("Hardening applied to this alert's attack: " + ("yes" if a.get("hardening_applied") else "no"))
+lvl = df.loc[(df["id"] == alert_id) & (df["source"] == "live"), "severity"]
+alert_view.render(mt, alert_id, lvl.iloc[0] if len(lvl) else None, run_id=run)

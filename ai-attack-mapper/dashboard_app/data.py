@@ -80,6 +80,15 @@ def round_kind(run_id: str) -> str:
     return "other"
 
 
+def session_of(run_id) -> str:
+    """Test session of a round: the round name without its tool prefix, so garak_20261005_v6-4, pyrit_20261005_v6-4 and
+    benign_20261005_v6-4 form session 20261005_v6-4."""
+    if not isinstance(run_id, str):
+        return ""
+    k = round_kind(run_id)
+    return run_id[len(k) + 1:] if k != "other" and run_id.startswith(k + "_") else run_id
+
+
 def family(probe_id) -> str:
     p = probe_id if isinstance(probe_id, str) else ""
     return p.split(".")[0] if p else "unknown"
@@ -123,6 +132,7 @@ def live_rows(_mtime: float) -> pd.DataFrame:
     if df.empty:
         return df
     df["kind"] = df["run_id"].map(round_kind)
+    df["session"] = df["run_id"].map(session_of)
     df["family"] = df["probe_id"].map(family)
     df["harmless"] = df["probe_id"].fillna("").str.startswith(HARMLESS)
     df["caught"] = df["category"].fillna("").str.strip() != ""
@@ -147,12 +157,38 @@ def event_severity(df: pd.DataFrame) -> pd.Series:
 
 
 def window(df: pd.DataFrame) -> pd.DataFrame:
-    """Apply the sidebar time range (st.session_state['time_range'] = (start_date, end_date)) to rows with a 'ts' column."""
-    tr = st.session_state.get("time_range")
-    if df.empty or "ts" not in df.columns or not tr or len(tr) != 2:
+    """Apply the sidebar filters: time range (st.session_state['time_range']) to rows with a 'ts' column, and the
+    prompt versions (st.session_state['prompt_versions']) to rows with a 'version' column."""
+    if df.empty:
         return df
-    d = df["ts"].dt.date
-    return df[(d >= tr[0]) & (d <= tr[1])]
+    tr = st.session_state.get("time_range")
+    if "ts" in df.columns and tr and len(tr) == 2:
+        d = df["ts"].dt.date
+        df = df[(d >= tr[0]) & (d <= tr[1])]
+    pv = st.session_state.get("prompt_versions")
+    if pv and "version" in df.columns:
+        df = df[df["version"].isin(pv)]
+    return df
+
+
+def selected_run() -> str | None:
+    """The Mapper run chosen in the sidebar (used by every page that shows Mapper results)."""
+    return st.session_state.get("mapper_run")
+
+
+def scope_dates() -> str:
+    tr = st.session_state.get("time_range")
+    return f"{tr[0]:%d %b} – {tr[1]:%d %b %Y}" if tr and len(tr) == 2 else "all dates"
+
+
+def scope_versions(df: pd.DataFrame | None = None) -> str:
+    pv = st.session_state.get("prompt_versions")
+    if pv:
+        return "prompt " + ", ".join(f"v{v}" for v in sorted(pv))
+    if df is not None and not df.empty and "version" in df.columns:
+        vs = sorted(int(v) for v in df["version"].dropna().unique())
+        return "prompt " + ", ".join(f"v{v}" for v in vs) if vs else "all prompt versions"
+    return "all prompt versions"
 
 
 def time_bounds(_mtime: float):
@@ -182,7 +218,42 @@ def rounds_table(_mtime: float) -> pd.DataFrame:
     })
     t["minutes"] = ((t["ended"] - t["started"]).dt.total_seconds() / 60).round(1)
     t["success_rate"] = (t["worked"] / t["graded"]).where(t["graded"] > 0)
+    t["session"] = t.index.map(session_of)
     return t.sort_values("started", ascending=False)
+
+
+def filter_rounds(rt: pd.DataFrame) -> pd.DataFrame:
+    """Apply the sidebar time range and prompt-version filter to a rounds_table()."""
+    if rt.empty:
+        return rt
+    tr = st.session_state.get("time_range")
+    if tr and len(tr) == 2:
+        rt = rt[(rt["started"].dt.date >= tr[0]) & (rt["started"].dt.date <= tr[1])]
+    pv = st.session_state.get("prompt_versions")
+    if pv:
+        rt = rt[rt["prompt_version"].isin({str(v) for v in pv})]
+    return rt
+
+
+def sessions_table(rt: pd.DataFrame) -> pd.DataFrame:
+    """Rounds grouped by test session (the same session suffix across Garak, PyRIT and harmless rounds)."""
+    if rt.empty:
+        return pd.DataFrame()
+    atk = rt["tool"].isin(["Garak", "PyRIT"])
+    g = rt.groupby("session")
+    s = pd.DataFrame({
+        "rounds": g.size(),
+        "tools": g["tool"].agg(lambda x: ", ".join(sorted(set(x)))),
+        "prompt_version": g["prompt_version"].agg(lambda x: "/".join(sorted(set(x)))),
+        "started": g["started"].min(),
+        "attack_requests": rt[atk].groupby("session")["requests"].sum(),
+        "graded": rt[atk].groupby("session")["graded"].sum(),
+        "worked": rt[atk].groupby("session")["worked"].sum(),
+        "harmless": rt[~atk].groupby("session")["requests"].sum(),
+        "invalid": g["invalid"].any(),
+    }).fillna({"attack_requests": 0, "graded": 0, "worked": 0, "harmless": 0})
+    s["success_rate"] = (s["worked"] / s["graded"]).where(s["graded"] > 0)
+    return s.sort_values("started", ascending=False)
 
 
 def detection_summary(df: pd.DataFrame) -> dict:
@@ -200,9 +271,13 @@ def mapper_runs(_mtime: float) -> pd.DataFrame:
         return pd.DataFrame()
     conn = connect()
     try:
-        return pd.read_sql_query(
-            "SELECT run_id, model, prompt_version, COUNT(*) AS results, SUM(valid_json) AS valid, MIN(created_at) AS at "
-            "FROM mapper_results GROUP BY run_id ORDER BY COUNT(*) DESC", conn)
+        df = pd.read_sql_query(
+            "SELECT m.run_id, MAX(m.model) AS model, MAX(m.prompt_version) AS prompt_version, COUNT(DISTINCT m.alert_id) AS results, "
+            "SUM(m.valid_json) AS valid, MIN(m.created_at) AS at, MAX(m.created_at) AS last, "
+            "COUNT(DISTINCT CASE WHEN a.source = 'live' THEN m.alert_id END) AS live, "
+            "COUNT(DISTINCT CASE WHEN a.source = 'synthetic' THEN m.alert_id END) AS synthetic "
+            "FROM mapper_results m LEFT JOIN alerts a ON a.id = m.alert_id GROUP BY m.run_id ORDER BY MAX(m.created_at) DESC", conn)
+        return df
     finally:
         conn.close()
 
@@ -215,7 +290,8 @@ def mapper_results(_mtime: float, run_id: str) -> pd.DataFrame:
         df = pd.read_sql_query(
             "SELECT m.alert_id, m.valid_json, m.predicted_category, m.sub_cluster, m.lifecycle_phase, m.confidence, "
             "m.atlas_technique, m.owasp_category, m.attck_technique, m.in_scope, m.adversarial, m.rationale, m.error, "
-            "m.repeat_no, a.run_id, a.probe_id, a.attack_succeeded, a.category AS detector_flag "
+            "m.repeat_no, a.run_id, a.probe_id, a.attack_succeeded, a.category AS detector_flag, a.source, "
+            "a.ground_truth_category AS truth "
             "FROM mapper_results m JOIN alerts a ON a.id = m.alert_id WHERE m.run_id = ? ORDER BY m.repeat_no", conn,
             params=(run_id,))
     finally:
@@ -224,6 +300,8 @@ def mapper_results(_mtime: float, run_id: str) -> pd.DataFrame:
         return df
     df = df.drop_duplicates("alert_id", keep="last")
     df["family"] = df["probe_id"].map(family)
+    df["session"] = df["run_id"].map(session_of)
+    df["source"] = df["source"].fillna("live")
     df["harmless"] = df["probe_id"].fillna("").str.startswith(HARMLESS)
     df["caught"] = df["detector_flag"].fillna("").str.strip() != ""
 
@@ -235,6 +313,8 @@ def mapper_results(_mtime: float, run_id: str) -> pd.DataFrame:
     df["mapper_call"] = df.apply(call, axis=1)
 
     def group(r):
+        if r["source"] == "synthetic":
+            return "Synthetic alert"
         if r["harmless"]:
             return "Harmless, " + ("flagged" if r["caught"] else "not flagged")
         if pd.isna(r["attack_succeeded"]):
@@ -245,7 +325,7 @@ def mapper_results(_mtime: float, run_id: str) -> pd.DataFrame:
 
 
 @st.cache_data(show_spinner=False)
-def alert(_mtime: float, alert_id: int) -> dict | None:
+def alert(_mtime: float, alert_id: int, run_id: str | None = None) -> dict | None:
     conn = connect()
     if conn is None:
         return None
@@ -255,6 +335,12 @@ def alert(_mtime: float, alert_id: int) -> dict | None:
             return None
         a = dict(r)
         a["mapper"] = None
+        if run_id and has_table("mapper_results"):
+            m = conn.execute("SELECT * FROM mapper_results WHERE alert_id = ? AND run_id = ? ORDER BY repeat_no DESC LIMIT 1",
+                             (alert_id, run_id)).fetchone()
+            if m is not None:
+                a["mapper"] = dict(m) | {"source": f"Mapper run {m['run_id']}"}
+                return a
         if a.get("predicted_category") is not None or a.get("classified_at"):
             a["mapper"] = {"source": "alert row", "predicted_category": a.get("predicted_category"),
                            "sub_cluster": a.get("sub_cluster"), "lifecycle_phase": a.get("lifecycle_phase"),
@@ -273,23 +359,37 @@ def alert(_mtime: float, alert_id: int) -> dict | None:
 
 
 @st.cache_data(show_spinner=False)
-def explorer_rows(_mtime: float) -> pd.DataFrame:
-    """Live attack and harmless rows plus the latest Mapper call where one exists."""
+def explorer_rows(_mtime: float, run_id: str | None = None) -> pd.DataFrame:
+    """Live attack and harmless rows plus the synthetic alerts, each with its Mapper result from the chosen run
+    (or, with no run chosen, its latest Mapper result). 'source' is 'live' or 'synthetic'."""
     df = live_rows(_mtime)
+    df = df[df["kind"].isin(["garak", "pyrit", "benign"])].copy() if not df.empty else df
+    if not df.empty:
+        df["source"] = "live"
+    conn = connect()
+    if conn is None:
+        return df
+    try:
+        syn = pd.read_sql_query("SELECT id, timestamp, ground_truth_category AS truth FROM alerts WHERE source = 'synthetic'", conn)
+        calls = pd.DataFrame()
+        if has_table("mapper_results"):
+            q = ("SELECT alert_id AS id, CASE WHEN valid_json = 1 THEN COALESCE(predicted_category, 'No attack') "
+                 "ELSE 'Failed' END AS mapper_call, confidence AS mapper_confidence, atlas_technique AS mapper_atlas, "
+                 "owasp_category AS mapper_owasp, attck_technique AS mapper_attck FROM mapper_results ")
+            q += "WHERE run_id = ? ORDER BY repeat_no" if run_id else "ORDER BY valid_json, created_at"
+            calls = pd.read_sql_query(q, conn, params=(run_id,) if run_id else ()).drop_duplicates("id", keep="last")
+    finally:
+        conn.close()
+    if not syn.empty:
+        syn = syn.assign(source="synthetic", run_id=None, session=None, probe_id=None, version=None, attack_succeeded=None,
+                         kind="synthetic", family="synthetic", harmless=False, caught=False, invalid_round=False,
+                         severity="Synthetic", detector=None,
+                         ts=pd.to_datetime(syn["timestamp"], utc=True, format="ISO8601", errors="coerce"))
+        df = pd.concat([df, syn], ignore_index=True) if not df.empty else syn
     if df.empty:
         return df
-    df = df[df["kind"].isin(["garak", "pyrit", "benign"])].copy()
-    calls = pd.DataFrame()
-    if has_table("mapper_results"):
-        conn = connect()
-        try:
-            calls = pd.read_sql_query(
-                "SELECT alert_id AS id, CASE WHEN valid_json = 1 THEN COALESCE(predicted_category, 'No attack') "
-                "ELSE 'Failed' END AS mapper_call, confidence AS mapper_confidence FROM mapper_results "
-                "ORDER BY valid_json, created_at", conn).drop_duplicates("id", keep="last")
-        finally:
-            conn.close()
-    df = df.merge(calls, on="id", how="left") if not calls.empty else df.assign(mapper_call=None, mapper_confidence=None)
+    df = (df.merge(calls, on="id", how="left") if not calls.empty
+          else df.assign(mapper_call=None, mapper_confidence=None, mapper_atlas=None, mapper_owasp=None, mapper_attck=None))
     df["mapper_call"] = df["mapper_call"].fillna("Not classified")
     return df
 

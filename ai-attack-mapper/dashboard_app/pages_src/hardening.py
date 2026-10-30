@@ -22,9 +22,14 @@ only show consistency. The decision that counts is the one on fresh rounds (prom
 
 **Attack success by prompt version** pools whole rounds, which sample different prompts; the fair comparison is the decision,
 which uses only prompts sent to both versions.
+
+**Reading the results.** A version is only worth activating after ACCEPT on fresh rounds; replay tests show consistency only.
+The number of rules each version adds is shown on its entry under System prompt versions.
+
+**Details** holds attack success by prompt version.
 """
 
-ui.header("Auto-hardening", "Prompt versions, attack success per version and the accept or reject decisions.", ABOUT, "Respond")
+ui.header("Auto-hardening", "Prompt versions, attack success and accept/reject decisions.", ABOUT, "Respond")
 
 mt = data.db_mtime()
 versions = data.prompt_versions()
@@ -33,10 +38,10 @@ decisions = [h for h in history if h.get("decision")]
 latest = data.latest_fresh_decision(decisions)
 util = data.utility_checks()
 active = data.active_prompt_version()
+ui.scope(f"{len(versions)} prompt versions", f"{len(decisions)} recorded decisions", "hardening history and stored prompt versions")
 ui.kpis([
     ("Prompt versions", f"{len(versions)}", (f"latest v{versions[-1]['version']}" if versions else "none found")
      + (f", active v{active}" if active is not None else ", active unknown (testbed not reachable)"), "accent"),
-    ("Rules in latest version", f"{len(versions[-1]['rules'])}" if versions else "–", "added countermeasure rules", None),
     ("Latest decision (fresh rounds)", latest["decision"] if latest else "Pending",
      f"v{latest.get('candidate')} vs v{latest.get('parent')}" if latest else "after the fresh attack rounds",
      {"ACCEPT": "good", "REJECT": "bad"}.get(latest["decision"], "warn") if latest else "warn"),
@@ -44,23 +49,6 @@ ui.kpis([
     ("Harmless refusals", " → ".join(f"{v}" for k, v in util[-1].items() if k.startswith("v")) if util else "–",
      f"of {util[-1]['messages']:,} messages, latest check" if util else "no check found", None),
 ])
-
-df = data.live_rows(mt)
-g = df[(df["kind"] == "garak") & ~df["harmless"] & df["attack_succeeded"].notna()] if not df.empty else df
-with ui.panel("Attack success by prompt version", "Garak rounds, all prompts"):
-    if g.empty:
-        ui.no_data("No graded Garak rounds yet.")
-    else:
-        t = g.groupby(["version", "family"]).agg(requests=("id", "size"), worked=("attack_succeeded", "sum")).reset_index()
-        t["rate"] = t["worked"] / t["requests"]
-        t["Version"] = "v" + t["version"].astype(int).astype(str)
-        bars = alt.Chart(t).mark_bar(cornerRadiusTopLeft=2, cornerRadiusTopRight=2).encode(
-            x=alt.X("family:N", title=None, axis=alt.Axis(labelAngle=0)),
-            xOffset="Version:N",
-            y=alt.Y("rate:Q", title="Share that worked", axis=alt.Axis(format="%")),
-            color=alt.Color("Version:N", title="Prompt version", scale=alt.Scale(scheme="tableau10")),
-            tooltip=["Version", "family", alt.Tooltip("requests:Q", format=","), alt.Tooltip("rate:Q", title="Worked", format=".1%")])
-        st.altair_chart(ui.chart(bars, 240), width="stretch")
 
 with ui.panel("Decisions", "auto_hardening/history.jsonl"):
     if not decisions:
@@ -91,3 +79,23 @@ with ui.panel("System prompt versions", f"{len(versions)} versions"):
                     st.markdown(f"- {r.split('.', 1)[1].strip() if '.' in r else r}")
             st.markdown("**Full prompt**")
             st.code(v["text"], language=None, wrap_lines=True)
+
+with ui.details():
+    df = data.live_rows(mt)
+    g = df[(df["kind"] == "garak") & ~df["harmless"] & df["attack_succeeded"].notna()] if not df.empty else df
+    with ui.panel("Attack success by prompt version", "Garak rounds, all prompts"):
+        if g.empty:
+            ui.no_data("No graded Garak rounds yet.")
+        else:
+            t = g.groupby(["version", "family"]).agg(requests=("id", "size"), worked=("attack_succeeded", "sum")).reset_index()
+            t["rate"] = t["worked"] / t["requests"]
+            t["Version"] = "v" + t["version"].astype(int).astype(str)
+            bars = alt.Chart(t).mark_bar(cornerRadiusTopLeft=2, cornerRadiusTopRight=2).encode(
+                x=alt.X("family:N", title=None, axis=alt.Axis(labelAngle=0)),
+                xOffset="Version:N",
+                y=alt.Y("rate:Q", title="Share that worked", axis=alt.Axis(format="%")),
+                color=alt.Color("Version:N", title="Prompt version", scale=alt.Scale(range=[ui.ACCENT, ui.PURPLE, ui.GOOD, ui.ORANGE, ui.WARN, ui.BAD,
+                                                                          "#8CA9FF", "#73DFE4", "#E6A8DB", ui.MUTED])),
+                tooltip=[alt.Tooltip("Version:N", title="Prompt version"), alt.Tooltip("family:N", title="Family"),
+                         alt.Tooltip("requests:Q", title="Requests", format=","), alt.Tooltip("rate:Q", title="Worked", format=".1%")])
+            st.altair_chart(ui.chart(bars, 240), width="stretch")

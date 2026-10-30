@@ -44,6 +44,22 @@ with st.sidebar:
             tr = st.date_input("Time range", value=bounds, min_value=bounds[0], max_value=bounds[1], format="DD/MM/YYYY",
                                help="Filters attack and harmless events on Overview, Attack campaigns, Detection and the Alert explorer.")
             st.session_state["time_range"] = tr if isinstance(tr, (tuple, list)) and len(tr) == 2 else bounds
+        live = data.live_rows(data.db_mtime())
+        versions = sorted(int(v) for v in live["version"].dropna().unique()) if not live.empty else []
+        if versions:
+            st.session_state["prompt_versions"] = st.multiselect(
+                "Prompt versions", versions, format_func=lambda v: f"v{v}", placeholder="All versions", key="pv_filter",
+                help="Filters attack and harmless events by the system-prompt version they were sent to.")
+        runs = data.mapper_runs(data.db_mtime())
+        if not runs.empty:
+            labels = {r.run_id: f"{r.run_id} · {int(r.results):,} alerts" for r in runs.itertuples()}
+            ids = list(runs["run_id"])
+            default = next((i for i, r in enumerate(runs.itertuples()) if r.live > 0), 0)
+            st.session_state["mapper_run"] = st.selectbox(
+                "Mapper run", ids, index=default, format_func=lambda r: labels[r], key="mapper_run_pick",
+                help="The classification run shown on Overview, Classification, Alert explorer and Evaluation.")
+        else:
+            st.session_state["mapper_run"] = None
     else:
         st.error(f"Alert store not found: {data.DB_PATH}. Set ALERTS_DB_PATH.")
     if st.button("Refresh data", icon=":material/refresh:", width="stretch"):
