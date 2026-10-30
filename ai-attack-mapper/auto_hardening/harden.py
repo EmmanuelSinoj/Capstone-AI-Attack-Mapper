@@ -75,12 +75,18 @@ def main():
     ap.add_argument("--select", choices=["probe", "mapper"], default="probe", help="how a clause is chosen (mapper needs --eligible)")
     ap.add_argument("--base", type=int, required=True, help="system-prompt version those results came from")
     ap.add_argument("--min-successes", type=int, default=1)
+    ap.add_argument("--skip-families", nargs="+", default=[], metavar="CLAUSE_KEY",
+                    help="clauses.json keys that get NO clause even when their attacks passed the gate (for example encoding). "
+                         "Those families stay in decide.py's no-regression check.")
     ap.add_argument("--apply", action="store_true", help="store the new version (default: dry run)")
     ap.add_argument("--llm", action="store_true")
     ap.add_argument("--set", default="replay_sets/replay_set_v6-trial.json")
     a = ap.parse_args()
 
     clauses = cs.load_clauses()
+    bad = [k for k in a.skip_families if k not in clauses]
+    if bad:
+        sys.exit(f"--skip-families: not a clauses.json key: {', '.join(bad)} (keys: {', '.join(clauses)})")
     if a.select == "mapper" and not a.eligible:
         sys.exit("--select mapper needs --eligible (the Mapper's IDs come from gate.py --out)")
     chosen, summary = [], {}
@@ -97,6 +103,8 @@ def main():
         for fam in sorted(win, key=lambda f: -win[f]):
             if win[fam] < a.min_successes: continue
             key, text = clause_for(fam, clauses)
+            if key in a.skip_families:
+                print(f"  {fam}: {win[fam]}/{tot[fam]} succeeded -> clause '{key}' SKIPPED (--skip-families)"); continue
             if a.llm: text = llm_refine(text, ex[fam])
             print(f"  {fam}: {win[fam]}/{tot[fam]} succeeded -> clause '{key}'")
             if text not in [c[1] for c in chosen]: chosen.append((key, text))
@@ -119,6 +127,8 @@ def main():
         print("  probe family vs Mapper mapping: " + ", ".join(f"{k} {v}" for k, v in agree.most_common()))
         for key in sorted(per, key=lambda k: -per[k]):
             if per[key] < a.min_successes: continue
+            if key in a.skip_families:
+                print(f"  clause '{key}': {per[key]} attacks -> SKIPPED (--skip-families)"); continue
             text = clauses[key]
             if a.llm: text = llm_refine(text, ex[key])
             top = ", ".join(f"{f} {n}" for f, n in fams[key].most_common(3))
@@ -138,7 +148,7 @@ def main():
     v = res["version"]
     log = HERE / "history.jsonl"
     with open(log, "a", encoding="utf-8") as fh:
-        fh.write(json.dumps({"base": a.base, "new": v, **summary, "clauses": [k for k, _ in chosen], "select": a.select,
+        fh.write(json.dumps({"base": a.base, "new": v, **summary, "clauses": [k for k, _ in chosen], "skipped": a.skip_families, "select": a.select,
                              "llm": a.llm, "source": a.results or a.eligible}) + "\n")
     print(f"stored as version {v} (not activated). Evaluate old vs new:")
     print(f"  cd ../attack_generation && python replay_runner.py --set {a.set} --versions {a.base},{v} --repeats 3 --new-round")
