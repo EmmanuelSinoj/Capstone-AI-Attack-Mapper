@@ -24,6 +24,13 @@ Commands (run from ai-attack-mapper/):
   python -m mapper.pilot freeze --backend claude --model claude-sonnet-5
   python -m mapper.pilot run   --backend claude --repeats 3 --split heldout        # once, after freeze
 
+Live classification (frozen model + prompt only; results go to mapper_results as one run):
+  python -m mapper.pilot --db <db> run --backend claude --model claude-haiku-5-5 --split live --ids-file gate_out.jsonl
+  python -m mapper.pilot --db <db> run --backend claude --model claude-haiku-5-5 --split live --rounds garak_X,benign_X
+  python -m mapper.pilot --db <db> run ... --resume <run_id>      # redo only failed alerts (e.g. after a network drop)
+  python -m mapper.pilot --db <db> export-run --run-id <run_id> --out <path without extension>   # .db + .csv
+  In Python: run(conn, "claude", split="live", model="claude-haiku-5-5", ids_file=..., rounds=[...]) -> run_id
+
 Scoring (score / score_runs()):
   From the alert store's mapper_scores view: valid-JSON rate, category / sub-cluster /
   in-scope / adversarial accuracy. Category accuracy is reported two ways: over valid
@@ -95,22 +102,103 @@ def _norm(text) -> str:
 
 # ----------------------------------------------------------------------------- running
 
+def _read_ids_file(path: str) -> list[int]:
+    """CSV/text: one alert id per line (a header like 'id' and blank lines are ignored).
+    .jsonl (e.g. gate.py --out): one JSON object per line, alert id in 'rowid' (or 'alert_id'/'id')."""
+    ids = []
+    text = Path(path).read_text(encoding="utf-8-sig")
+    if str(path).lower().endswith(".jsonl"):
+        for n, line in enumerate(text.splitlines(), 1):
+            if not line.strip():
+                continue
+            obj = json.loads(line)
+            key = next((k for k in ("rowid", "alert_id", "id") if k in obj), None)
+            if key is None:
+                raise SystemExit(f"{path} line {n}: no 'rowid', 'alert_id' or 'id' field.")
+            ids.append(int(obj[key]))
+    else:
+        for line in text.splitlines():
+            cell = line.split(",")[0].strip()
+            if cell.isdigit():
+                ids.append(int(cell))
+    if len(ids) != len(set(ids)):
+        raise SystemExit(f"{path} lists some ids more than once.")
+    return ids
+
+
+def _check_frozen_model(backend: str, model_name: str) -> None:
+    """Live testing must use a frozen model on the exact frozen prompt."""
+    lock = _load_lock()
+    frozen = [f for f in [lock.get("frozen")] + lock.get("secondary", []) if f]
+    match = next((f for f in frozen if f["backend"] == backend and f["model"] == model_name), None)
+    if match is None:
+        raise SystemExit(f"Live run refused: {backend}/{model_name} is not a frozen model "
+                         f"(frozen: {', '.join(f['backend'] + '/' + f['model'] for f in frozen) or 'none'}).")
+    if match["prompt_fingerprint"] != prompt.prompt_fingerprint():
+        raise SystemExit("Live run refused: the prompt changed since it was frozen "
+                         f"({prompt.prompt_fingerprint()} != {match['prompt_fingerprint']}).")
+
+
+def _round_ids(conn, rounds: list[str]) -> list[int]:
+    """Alerts of the named rounds (alerts.run_id, exact match) that the Mapper queue would take:
+    the intersection with db.get_mapper_queue(), so the selection rules stay the alert store's."""
+    rounds = [r.strip() for r in rounds if r.strip()]
+    if not rounds:
+        raise SystemExit("--rounds is empty.")
+    marks = ",".join("?" * len(rounds))
+    counts = dict(conn.execute(f"SELECT run_id, COUNT(*) FROM alerts WHERE run_id IN ({marks}) GROUP BY run_id",
+                               rounds).fetchall())
+    unknown = [r for r in rounds if r not in counts]
+    if unknown:
+        raise SystemExit(f"No alerts with run_id {unknown} in this database (round names must match exactly).")
+    queue = set(alert_db.get_mapper_queue(conn))
+    picked = []
+    for rnd in rounds:
+        in_round = [r[0] for r in conn.execute("SELECT id FROM alerts WHERE run_id = ? ORDER BY id", (rnd,))]
+        chosen = [i for i in in_round if i in queue]
+        print(f"  round {rnd}: {len(chosen)} of {len(in_round)} alert(s) are in the Mapper queue")
+        picked.extend(chosen)
+    return picked
+
+
 def run(conn, backend: str, split: str = "dev", model: str | None = None, repeats: int = 1,
         retries: int = 1, rerun_reason: str | None = None, resume: str | None = None,
-        **backend_kwargs) -> str:
+        ids_file: str | None = None, rounds: list[str] | None = None, **backend_kwargs) -> str:
     """Classify every alert in `split`, `repeats` times, storing each reply. Returns the run_id.
     resume=<run_id>: continue an interrupted run -- same run_id, alerts that already have a
-    valid reply are skipped, failed or missing ones are (re)done."""
+    valid reply are skipped, failed or missing ones are (re)done.
+    split='live' + ids_file: classify exactly the listed alert ids (Live Classification Testing),
+    with a frozen model and prompt only; held-out alerts are refused.
+    split='live' + rounds: classify every alert of those rounds (alerts.run_id) that
+    db.get_mapper_queue() would pick, as one run. ids_file and rounds can be combined."""
     model_name = _model_name(backend, model)
     if split == "heldout":
         _check_heldout_allowed(backend, model_name, rerun_reason)
+    elif split == "live":
+        if not ids_file and not rounds:
+            raise SystemExit("--split live needs --ids-file and/or --rounds.")
+        _check_frozen_model(backend, model_name)
     elif split != "dev":
-        raise ValueError("split must be 'dev' or 'heldout'")
+        raise ValueError("split must be 'dev', 'heldout' or 'live'")
 
-    ids = _split_ids(conn, split)
+    if split == "live":
+        ids = _read_ids_file(ids_file) if ids_file else []
+        if rounds:
+            seen = set(ids)
+            ids += [i for i in _round_ids(conn, rounds) if i not in seen]
+        heldout = set(_split_ids(conn, "heldout"))
+        clash = sorted(set(ids) & heldout)
+        if clash:
+            raise SystemExit(f"Live run refused: {len(clash)} listed id(s) are held-out alerts: {clash[:10]}")
+    else:
+        ids = _split_ids(conn, split)
     if not ids:
         raise SystemExit(f"No '{split}' alerts. Load the answer key and run assign_split.py first.")
     alerts = alert_db.get_mapper_input(conn, ids=ids)   # id, source, input, output -- nothing else
+    if split == "live":
+        missing = sorted(set(ids) - {a["id"] for a in alerts})
+        if missing:
+            raise SystemExit(f"{len(missing)} listed id(s) are not in this database: {missing[:10]}")
 
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
     run_id = f"pilot_{stamp}_{backend}_{_slug(model_name)}_{prompt.PROMPT_VERSION}_{split}"
@@ -130,7 +218,7 @@ def run(conn, backend: str, split: str = "dev", model: str | None = None, repeat
 
     print(f"run_id {run_id}: {len(alerts)} {split} alert(s) x {repeats} repeat(s), "
           f"prompt {prompt.PROMPT_VERSION} ({prompt.prompt_fingerprint()}), retries {retries}")
-    backend_errors, successes = [], 0
+    backend_errors, successes, net_fails = [], 0, 0
     for rep in range(1, repeats + 1):
         for alert in alerts:
             if (alert["id"], rep) in done:
@@ -164,8 +252,19 @@ def run(conn, backend: str, split: str = "dev", model: str | None = None, repeat
                     raise SystemExit(f"\nStopped: the backend rejected 3 requests in a row with the same error:\n"
                                      f"  {att.error[:600]}\nFix that, then delete this run with: "
                                      f"py -m mapper.pilot delete-repeat --run-id {run_id} --repeat {rep}")
+                # Network dropped mid-run (connection errors / timeouts, not content refusals):
+                # stop instead of failing every remaining alert; --resume picks up from here.
+                if "request failed" in att.error:
+                    net_fails += 1
+                    if net_fails >= 5:
+                        raise SystemExit(f"\nStopped: 5 connection failures in a row ({att.error[:200]}).\n"
+                                         f"Check your internet connection, then continue with the same command plus:\n"
+                                         f"  --resume {run_id}")
+                else:
+                    net_fails = 0
             elif att.ok:
                 successes += 1
+                net_fails = 0
 
     if split == "heldout":
         lock = _load_lock()
@@ -173,6 +272,55 @@ def run(conn, backend: str, split: str = "dev", model: str | None = None, repeat
             {"run_id": run_id, "at": stamp, "rerun_reason": rerun_reason})
         _save_lock(lock)
     return run_id
+
+
+def export_run(conn, run_id: str, out_base: str) -> tuple[Path, Path, int]:
+    """Copy every mapper_results row of one run (all columns) into a new SQLite file
+    (<out_base>.db, same table definition) and a CSV (<out_base>.csv), so the rows can be
+    imported by alert_id into another database without sending the whole alerts.db."""
+    import csv
+    import sqlite3
+    rows = conn.execute("SELECT * FROM mapper_results WHERE run_id = ? ORDER BY alert_id, repeat_no",
+                        (run_id,)).fetchall()
+    if not rows:
+        raise SystemExit(f"No mapper_results rows for run {run_id}.")
+    cols = [d[0] for d in conn.execute("SELECT * FROM mapper_results LIMIT 0").description]
+    ddl = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='mapper_results'").fetchone()[0]
+    db_path, csv_path = Path(out_base + ".db"), Path(out_base + ".csv")
+    for p in (db_path, csv_path):
+        if p.exists():
+            raise SystemExit(f"{p} already exists; choose another --out.")
+    out = sqlite3.connect(db_path)
+    try:
+        out.execute(ddl)
+        out.executemany(f"INSERT INTO mapper_results ({','.join(cols)}) VALUES ({','.join('?' * len(cols))})",
+                        [tuple(r) for r in rows])
+        out.commit()
+        assert out.execute("SELECT COUNT(*) FROM mapper_results").fetchone()[0] == len(rows)
+    finally:
+        out.close()
+    with csv_path.open("w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(cols)
+        w.writerows(tuple(r) for r in rows)
+    return db_path, csv_path, len(rows)
+
+
+def live_report(conn, run_id: str) -> dict:
+    """No answer key for live alerts: report only what ran and what failed."""
+    rows = [dict(r) for r in conn.execute(
+        "SELECT alert_id, repeat_no, valid_json, predicted_category, confidence, error, raw_output "
+        "FROM mapper_results WHERE run_id = ? ORDER BY alert_id, repeat_no", (run_id,))]
+    failed = [{"alert_id": r["alert_id"], "repeat": r["repeat_no"], "error": r["error"],
+               "raw_output_start": (r["raw_output"] or "")[:200]} for r in rows if not r["valid_json"]]
+    notes = [{"alert_id": r["alert_id"], "repeat": r["repeat_no"], "note": r["error"]}
+             for r in rows if r["valid_json"] and r["error"]]
+    model = conn.execute("SELECT model FROM mapper_results WHERE run_id = ? LIMIT 1", (run_id,)).fetchone()
+    return {"run_id": run_id, "model": model[0] if model else None, "prompt_version": prompt.PROMPT_VERSION,
+            "prompt_fingerprint": prompt.prompt_fingerprint(), "replies": len(rows),
+            "valid": sum(r["valid_json"] for r in rows), "failed_or_bad_json": failed,
+            "valid_after_retry_or_repair": notes,
+            "predicted_category_counts": dict(Counter(r["predicted_category"] for r in rows if r["valid_json"]))}
 
 
 def freeze(backend: str, model: str | None, from_run: str | None = None,
@@ -682,7 +830,12 @@ def main(argv=None) -> int:
     p_run.add_argument("--backend", choices=["ollama", "claude"], required=True)
     p_run.add_argument("--model", default=None)
     p_run.add_argument("--host", default=None)
-    p_run.add_argument("--split", choices=["dev", "heldout"], default="dev")
+    p_run.add_argument("--split", choices=["dev", "heldout", "live"], default="dev")
+    p_run.add_argument("--ids-file", default=None,
+                       help="with --split live: CSV/text (one alert id per line) or gate .jsonl (rowid)")
+    p_run.add_argument("--rounds", default=None,
+                       help="with --split live: comma-separated round names (alerts.run_id); every alert "
+                            "of those rounds that get_mapper_queue() would pick, as one run")
     p_run.add_argument("--repeats", type=int, default=1)
     p_run.add_argument("--retries", type=int, default=1, help="re-asks after an unusable reply (default 1)")
     p_run.add_argument("--rerun-reason", default=None)
@@ -724,6 +877,10 @@ def main(argv=None) -> int:
     p_del.add_argument("--run-id", required=True)
     p_del.add_argument("--repeat", type=int, required=True)
 
+    p_xp = sub.add_parser("export-run", help="write one run's mapper_results rows to a new .db and .csv")
+    p_xp.add_argument("--run-id", required=True)
+    p_xp.add_argument("--out", required=True, help="output path without extension, e.g. evaluation/mapper_results_X")
+
     sub.add_parser("status")
     a = ap.parse_args(argv)
 
@@ -732,8 +889,25 @@ def main(argv=None) -> int:
         if a.cmd == "run":
             kwargs = {"host": a.host} if (a.host and a.backend == "ollama") else {}
             rid = run(conn, a.backend, split=a.split, model=a.model, repeats=a.repeats, retries=a.retries,
-                      rerun_reason=a.rerun_reason, resume=a.resume, **kwargs)
-            _print_scores(score_runs(conn, rid))
+                      rerun_reason=a.rerun_reason, resume=a.resume, ids_file=a.ids_file,
+                      rounds=a.rounds.split(",") if a.rounds else None, **kwargs)
+            if a.split == "live":
+                rep = live_report(conn, rid)
+                REPORT_DIR.mkdir(parents=True, exist_ok=True)
+                out = REPORT_DIR / f"{rid}_report.json"
+                out.write_text(json.dumps(rep, indent=2), encoding="utf-8")
+                print(f"\n== {rid} ==\n  model {rep['model']}, prompt {rep['prompt_version']} "
+                      f"({rep['prompt_fingerprint']})\n  valid {rep['valid']}/{rep['replies']}, "
+                      f"failed or bad JSON: {len(rep['failed_or_bad_json'])}, "
+                      f"valid only after retry/repair: {len(rep['valid_after_retry_or_repair'])}\n"
+                      f"  predicted categories: {rep['predicted_category_counts']}\n  report: {out}")
+                for f in rep["failed_or_bad_json"]:
+                    print(f"  FAILED alert {f['alert_id']}: {(f['error'] or '')[:150]}")
+                # Last line on purpose: the orchestrator takes the LAST pilot_... match in the
+                # output as the run id (the report path above also contains one).
+                print(f"MAPPER_RUN_ID {rid}")
+            else:
+                _print_scores(score_runs(conn, rid))
         elif a.cmd == "score":
             rows = score_runs(conn, a.run_id)
             if not rows:
@@ -778,6 +952,9 @@ def main(argv=None) -> int:
                              (a.run_id, a.repeat)).rowcount
             conn.commit()
             print(f"deleted {n} row(s): {a.run_id} repeat {a.repeat}")
+        elif a.cmd == "export-run":
+            db_path, csv_path, n = export_run(conn, a.run_id, a.out)
+            print(f"{n} row(s) of {a.run_id} written to:\n  {db_path}\n  {csv_path}")
         elif a.cmd == "status":
             splits = dict(conn.execute("SELECT COALESCE(split, 'unassigned'), COUNT(*) FROM answer_key GROUP BY 1").fetchall())
             print("answer_key rows by split:", splits or "none -- load the answer key first")

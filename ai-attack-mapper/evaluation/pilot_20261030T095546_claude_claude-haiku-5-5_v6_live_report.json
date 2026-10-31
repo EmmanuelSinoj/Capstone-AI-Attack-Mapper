@@ -1,0 +1,44 @@
+{
+  "run_id": "pilot_20261030T095546_claude_claude-haiku-5-5_v6_live",
+  "model": "claude-haiku-5-5",
+  "prompt_version": "v6",
+  "prompt_fingerprint": "81ed96bf5722",
+  "replies": 604,
+  "valid": 602,
+  "failed_or_bad_json": [
+    {
+      "alert_id": 39452,
+      "repeat": 1,
+      "error": "backend: No text in Anthropic reply (stop_reason='refusal'); block types: []",
+      "raw_output_start": ""
+    },
+    {
+      "alert_id": 39453,
+      "repeat": 1,
+      "error": "backend: No text in Anthropic reply (stop_reason='refusal'); block types: []",
+      "raw_output_start": ""
+    }
+  ],
+  "valid_after_retry_or_repair": [
+    {
+      "alert_id": 39184,
+      "repeat": 1,
+      "note": "json repaired (trailing comma)"
+    },
+    {
+      "alert_id": 43502,
+      "repeat": 1,
+      "note": "valid after 2 attempts"
+    },
+    {
+      "alert_id": 43675,
+      "repeat": 1,
+      "note": "valid after 2 attempts"
+    }
+  ],
+  "predicted_category_counts": {
+    "B": 563,
+    "null": 19,
+    "C": 20
+  }
+}
