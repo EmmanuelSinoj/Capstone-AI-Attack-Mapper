@@ -19,11 +19,11 @@ Steps: attack, grade, classify, import, playbooks, gate, harden, verify_candidat
 1. **Machine settings** in `config.json` on the testbed machine:
    - `root`: the folder the LIVE stack uses that holds `attack_generation/`, `auto_hardening/`, `alert_store/`, `testbed/` (e.g. `live_attack_path`). `compose_dir`: where `docker-compose.yml` is. Both `null` = this clone. They must point at the tree the running testbed writes to, or rounds and annotate use different databases.
    - `python`: the venv Python that has Garak and PyRIT (`run_round.py` starts them with it).
-2. `commands.classify`: Gladwin's live runner with `--ids-file {ids_file}`. It must leave its run in `{mapper_db}` (= `<cycle folder>/mapper_results.db`, one run per file), either by writing there directly or with a second command such as `export-run --run-id {mapper_run} --out {mapper_db}`. Several commands are written as a list of lists.
+2. `commands.classify` is set: Gladwin's live runner (`python -m mapper.pilot --db {mapper_db} run --backend claude --model claude-haiku-5-5 --split live --ids-file {ids_file}`). Just before it runs, the script makes `{mapper_db}` (`<cycle folder>/mapper_results.db`) as a backup-API copy of the alert store with `mapper_results` emptied, so the runner finds the alerts and the file holds exactly one run for the import. The runner prints `MAPPER_RUN_ID <id>`. Needs `ANTHROPIC_API_KEY` in `.env`.
 3. `commands.import` is already set: Aneeq's `import_mapper_results.py --expect-round <round> --apply` in the container (it checks the ids and backs up the alert store first).
 4. `commands.playbooks` and `commands.evaluate` can stay `null`; those steps are skipped and noted in the summary.
 
-Until 2 is set, a cycle stops at `classify` with a "waiting for" message and continues with `resume` once it is.
+Each cycle's `mapper_results.db` is a full copy of the alert store; delete old ones when disk space matters (they are not committed).
 
 ## Testing without touching alerts.db
 

@@ -376,6 +376,17 @@ def step_classify(cy):
         cy.step("classify")["note"] = "skipped: commands.classify not configured"
         return
     extra = {"ids_file": str(ids_file), "ids_file_c": f"/app/orchestrator/cycles/{cy.name}/classify_ids.txt", "round": tok}
+    # The live runner reads the alerts from the database it writes to (--db), and the import refuses a source holding more
+    # than one run. So the cycle's mapper_results.db is a backup-API copy of the alert store with no Mapper rows in it.
+    mdb = cy.f("mapper_results.db")
+    print(f"Mapper working copy: {rel(mdb)} (copy of {cy.db_name}, mapper_results emptied)")
+    if not cy.dry:
+        mdb.unlink(missing_ok=True)
+        sqlite_backup(cy.db, mdb)
+        con = sqlite3.connect(str(mdb))
+        with con:
+            con.execute("DELETE FROM mapper_results")
+        con.close()
     out, i = "", 0
     while True:   # one command at a time: e.g. `run` prints the Mapper run id, then `export-run --run-id {mapper_run}` uses it
         found = re.findall(cy.cfg["mapper_run_regex"], out)
