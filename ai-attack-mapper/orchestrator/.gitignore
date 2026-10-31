@@ -1,0 +1,9 @@
+# Cycle folders: commit the record (state, verdict, summary, approval), not the bulk outputs or logs.
+cycles/*/*
+!cycles/*/state.json
+!cycles/*/decide.txt
+!cycles/*/summary.md
+!cycles/*/approval.json
+cycles/.lock
+*.tmp
+config.local.json

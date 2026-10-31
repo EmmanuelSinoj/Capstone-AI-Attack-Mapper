@@ -161,9 +161,31 @@ def _round_ids(conn, rounds: list[str]) -> list[int]:
     return picked
 
 
+def _iter_attempts(todo, workers, backend, retries, kwargs):
+    """Yield (alert, Attempt) in the order of `todo`. With workers > 1 the API calls run in
+    parallel threads (they wait on the network, so this is a real speed-up); the caller still
+    receives results one at a time, in order, so saving to the database, the printed lines and
+    the stop-early checks work exactly as in the one-at-a-time run. Only the calling thread
+    touches the database."""
+    def one(alert):
+        return classify.classify_alert_full(alert["id"], alert["source"], alert["input"], alert["output"],
+                                            backend=backend, retries=retries, **kwargs)
+    if workers <= 1:
+        for alert in todo:
+            yield alert, one(alert)
+        return
+    from concurrent.futures import ThreadPoolExecutor
+    ex = ThreadPoolExecutor(max_workers=workers)
+    try:
+        yield from zip(todo, ex.map(one, todo))
+    finally:
+        ex.shutdown(wait=False, cancel_futures=True)   # on an early stop, do not start the rest
+
+
 def run(conn, backend: str, split: str = "dev", model: str | None = None, repeats: int = 1,
         retries: int = 1, rerun_reason: str | None = None, resume: str | None = None,
-        ids_file: str | None = None, rounds: list[str] | None = None, **backend_kwargs) -> str:
+        ids_file: str | None = None, rounds: list[str] | None = None, workers: int = 1,
+        **backend_kwargs) -> str:
     """Classify every alert in `split`, `repeats` times, storing each reply. Returns the run_id.
     resume=<run_id>: continue an interrupted run -- same run_id, alerts that already have a
     valid reply are skipped, failed or missing ones are (re)done.
@@ -220,11 +242,8 @@ def run(conn, backend: str, split: str = "dev", model: str | None = None, repeat
           f"prompt {prompt.PROMPT_VERSION} ({prompt.prompt_fingerprint()}), retries {retries}")
     backend_errors, successes, net_fails = [], 0, 0
     for rep in range(1, repeats + 1):
-        for alert in alerts:
-            if (alert["id"], rep) in done:
-                continue
-            att = classify.classify_alert_full(alert["id"], alert["source"], alert["input"], alert["output"],
-                                               backend=backend, retries=retries, **kwargs)
+        todo = [a for a in alerts if (a["id"], rep) not in done]
+        for alert, att in _iter_attempts(todo, workers, backend, retries, kwargs):
             note = att.error
             if att.ok:
                 parts = []
@@ -838,6 +857,8 @@ def main(argv=None) -> int:
                             "of those rounds that get_mapper_queue() would pick, as one run")
     p_run.add_argument("--repeats", type=int, default=1)
     p_run.add_argument("--retries", type=int, default=1, help="re-asks after an unusable reply (default 1)")
+    p_run.add_argument("--workers", type=int, default=1,
+                       help="API calls in flight at once (default 1 = one at a time; 4-6 is about 4-6x faster)")
     p_run.add_argument("--rerun-reason", default=None)
     p_run.add_argument("--resume", default=None, metavar="RUN_ID", help="continue an interrupted run")
 
@@ -890,7 +911,7 @@ def main(argv=None) -> int:
             kwargs = {"host": a.host} if (a.host and a.backend == "ollama") else {}
             rid = run(conn, a.backend, split=a.split, model=a.model, repeats=a.repeats, retries=a.retries,
                       rerun_reason=a.rerun_reason, resume=a.resume, ids_file=a.ids_file,
-                      rounds=a.rounds.split(",") if a.rounds else None, **kwargs)
+                      rounds=a.rounds.split(",") if a.rounds else None, workers=a.workers, **kwargs)
             if a.split == "live":
                 rep = live_report(conn, rid)
                 REPORT_DIR.mkdir(parents=True, exist_ok=True)
