@@ -29,6 +29,7 @@ old signature (text only) for existing callers.
 import json
 import os
 import re
+import threading
 import time
 from pathlib import Path
 
@@ -50,22 +51,32 @@ class BackendError(RuntimeError):
     pass
 
 
+_DOTENV_LOCK = threading.Lock()
+
+
 def _load_dotenv_once():
-    """Minimal .env reader (KEY=VALUE lines) so the team's .env works without python-dotenv."""
+    """Minimal .env reader (KEY=VALUE lines) so the team's .env works without python-dotenv.
+    Thread-safe: with pilot --workers N several calls start at once, and the others must wait
+    until the first has finished reading .env instead of seeing 'done' and finding no key."""
     if getattr(_load_dotenv_once, "done", False):
         return
-    _load_dotenv_once.done = True
-    env_path = Path(__file__).resolve().parent.parent / ".env"
-    if not env_path.exists():
-        return
-    for line in env_path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        key, value = key.strip(), value.strip().strip('"').strip("'")
-        if key and value and key not in os.environ:
-            os.environ[key] = value
+    with _DOTENV_LOCK:
+        if getattr(_load_dotenv_once, "done", False):
+            return
+        try:
+            env_path = Path(__file__).resolve().parent.parent / ".env"
+            if not env_path.exists():
+                return
+            for line in env_path.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, value = line.split("=", 1)
+                key, value = key.strip(), value.strip().strip('"').strip("'")
+                if key and value and key not in os.environ:
+                    os.environ[key] = value
+        finally:
+            _load_dotenv_once.done = True      # only after the file has been read
 
 
 def default_ollama_model() -> str:
