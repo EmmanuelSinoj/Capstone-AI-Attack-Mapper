@@ -1,0 +1,45 @@
+{
+  "testbed": "http://localhost:8000",
+  "db": "alerts.db",
+
+  "probes": "promptinject,dan,encoding",
+  "skip_pyrit": false,
+  "benign_limit": null,
+  "utility_limit": 1380,
+
+  "skip_families": ["encoding"],
+  "require_mapper": true,
+  "min_confidence": 0.7,
+
+  "seen_sets": [
+    "attack_generation/replay_sets/replay_set_v6-trial.json",
+    "attack_generation/replay_sets/paraphrases_v6-trial.json"
+  ],
+  "extra_seen": [],
+
+  "container": ["docker", "compose", "run", "--rm", "--no-deps"],
+  "container_service": "testbed",
+
+  "mapper_db": null,
+  "mapper_run_regex": "(pilot_[A-Za-z0-9_.\\-]+)",
+
+  "commands": {
+    "classify": null,
+    "import": null,
+    "playbooks": null,
+    "evaluate": null
+  },
+
+  "_help": {
+    "commands": "Each command is {\"run\": [args...], \"in_container\": true|false, \"cwd\": \"folder under ai-attack-mapper\"}. null = not available yet: classify/import stop the cycle (the gate needs the Mapper), playbooks/evaluate are skipped and logged.",
+    "placeholders": "{python} {root} {cycle_dir} {cycle_dir_c} {db} {db_c} {base} {mapper_db} {mapper_db_c}; classify also {ids_file} {ids_file_c} {round}; import also {mapper_run}; playbooks {mapper_run} {round}; evaluate {base_round} {candidate_round} {candidate} {mapper_run}. *_c = path inside the container.",
+    "mapper_db": "path to the database Gladwin's runner writes to (mounted read-only into the container at /app/mapper_src for the import)",
+    "mapper_run_regex": "how the Mapper run id is found in the classify output (last match wins)",
+    "extra_seen": "more replay-set style json files whose prompts count as seen (e.g. eligible prompts from hardening done before the orchestrator existed)"
+  },
+  "_examples": {
+    "classify": {"run": ["{python}", "mapper/pilot.py", "run", "--backend", "claude", "--split", "live", "--ids-file", "{ids_file}"], "in_container": false},
+    "import": {"run": ["python3", "/app/auto_hardening/import_mapper_results.py", "--src", "{mapper_db_c}", "--db", "{db_c}", "--run-id", "{mapper_run}"], "in_container": true},
+    "_note": "argument names are placeholders until Gladwin's runner and Aneeq's import script are on the branch"
+  }
+}
