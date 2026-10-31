@@ -259,6 +259,8 @@ class Cycle:
         """Command that runs `inner` inside a one-off testbed container (SQLite writes over the host mount fail)."""
         c = self.cfg
         mounts = [(AG, "/app/attack_generation"), (AH, "/app/auto_hardening"), (HERE, "/app/orchestrator"), (MAPPER, "/app/mapper")]
+        if (ROOT / "playbook_generation").exists():   # Shadi's 6.1: its `apply` writes alerts.playbook from inside the container
+            mounts.append((ROOT / "playbook_generation", "/app/playbook_generation"))
         cmd = list(c["container"])
         for host, target in mounts:
             cmd += ["-v", f"{host}:{target}:ro"]
@@ -276,19 +278,21 @@ class Cycle:
                   # one Mapper results file per cycle: the import refuses a source holding more than one run
                   "mapper_db": str(self.dir / "mapper_results.db"), "mapper_db_c": f"{cdir_c}/mapper_results.db"}
         values.update(extra)
-        runs = spec["run"] if spec["run"] and isinstance(spec["run"][0], list) else [spec["run"]]
+        runs = spec["run"] if spec["run"] and isinstance(spec["run"][0], (list, dict)) else [spec["run"]]
         if only is not None:          # format one command (a later one may use a value an earlier one printed)
             if only >= len(runs):
                 return []
             runs = [runs[only]]
         out = []
-        for run in runs:
+        for run in runs:   # an entry may also be {"run": [...], "in_container": ..., "cwd": ...} to override the step's settings
+            one = run if isinstance(run, dict) else {"run": run}
+            in_c, cwd = one.get("in_container", spec.get("in_container")), one.get("cwd", spec.get("cwd", "."))
             try:
-                cmd = [str(p).format(**values) for p in run]
+                cmd = [str(p).format(**values) for p in one["run"]]
+                cwd = str(cwd).format(**values)
             except KeyError as e:
                 raise StepFailed(f"config commands.{key} uses {{{e.args[0]}}}, which is not available for this step")
-            out.append((self.container(cmd), COMPOSE) if spec.get("in_container")
-                       else (cmd, ROOT / str(spec.get("cwd", ".")).format(**values)))
+            out.append((self.container(cmd), COMPOSE) if in_c else (cmd, ROOT / cwd))
         return out
 
 
@@ -473,6 +477,10 @@ def step_import(cy):
 
 
 def step_playbooks(cy):
+    if not (ROOT / "playbook_generation" / "generate_playbooks.py").exists() and not cy.dry:
+        cy.step("playbooks")["note"] = "skipped: playbook_generation/ not in this tree yet (Shadi's PR)"
+        print("playbooks: playbook_generation/generate_playbooks.py not found, skipped")
+        return
     made = cy.team_command("playbooks", {"mapper_run": cy.state["values"].get("mapper_run") or "", "round": cy.val("round_attack")})
     if made is None:
         cy.step("playbooks")["note"] = "skipped: commands.playbooks not configured yet"
