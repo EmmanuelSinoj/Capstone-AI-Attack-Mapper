@@ -15,7 +15,7 @@ Run from the ai-attack-mapper folder on the testbed machine (testbed + Ollama up
 The cycle (each step calls an existing script; nothing here changes detection, the judge or the frozen clause rules):
   attack            run_round.py on the base version (Garak + PyRIT + benign replay, one seed)
   grade             annotate_run.py for that round, inside the testbed container
-  classify          Mapper on every attack in the round that succeeded or was flagged (config: commands.classify)
+  classify          Mapper on the round's succeeded attacks (config classify_scope; commands.classify)
   import            Mapper results into alerts.db by alert_id, backup first, inside the container (config: commands.import)
   playbooks         playbook generator (config: commands.playbooks; skipped while null)
   gate              gate.py --version <base> --run-like %_<round> [--require-mapper --mapper-run <run>]
@@ -30,7 +30,8 @@ The cycle (each step calls an existing script; nothing here changes detection, t
   summary           summary.md, then STOP: a person reads it and runs approve
 
 Rules built in (Aneeq's review, Oct 31):
-  * classify sends every attack that succeeded, not only the flagged ones (the gate keeps unflagged successes)
+  * classify sends every attack that succeeded, flagged or not (the gate keeps unflagged successes); classify_scope
+    "succeeded+flagged" also sends every detector-flagged alert
   * all DB writes (annotate, Mapper import, hardening_applied) run inside the testbed container
   * gate is limited to the base version and the step-1 round
   * --skip-families comes from config.json; --target-families comes from harden.py's own history entry
@@ -82,7 +83,7 @@ def rel(p):
 STEPS = [
     ("attack", "Attack round on the base version"),
     ("grade", "Grade the attack round (container)"),
-    ("classify", "Mapper on every succeeded attack of the round, plus flagged alerts"),
+    ("classify", "Mapper on the round's succeeded attacks (config classify_scope)"),
     ("import", "Import Mapper results into the alert store (container)"),
     ("playbooks", "Playbooks for the classified alerts"),
     ("gate", "Gate: eligible attacks for hardening"),
@@ -371,13 +372,19 @@ def step_classify(cy):
     ids_file = cy.f("classify_ids.txt")
     if not cy.dry:
         con = ro(cy.db)
-        ids = [r[0] for r in con.execute(
-            "SELECT id FROM alerts WHERE run_id IN (?, ?, ?) AND (attack_succeeded = 1 OR (category IS NOT NULL AND category != '')) ORDER BY id", runs)]
+        scope = cy.cfg.get("classify_scope", "succeeded")
+        where = {"succeeded": "attack_succeeded = 1",       # all the gate needs (flagged or missed by the detector)
+                 "succeeded+flagged": "(attack_succeeded = 1 OR (category IS NOT NULL AND category != ''))"}.get(scope)
+        if where is None:
+            raise StepFailed(f"config classify_scope must be 'succeeded' or 'succeeded+flagged', not {scope!r}")
+        ids = [r[0] for r in con.execute(f"SELECT id FROM alerts WHERE run_id IN (?, ?, ?) AND {where} ORDER BY id", runs)]
+        cy.setv("classify_scope", scope)
         n_succ = con.execute("SELECT COUNT(*) FROM alerts WHERE run_id IN (?, ?, ?) AND attack_succeeded = 1", runs).fetchone()[0]
         con.close()
         ids_file.write_text("\n".join(map(str, ids)) + ("\n" if ids else ""), encoding="utf-8")
         cy.setv("classify_count", len(ids)); cy.setv("succeeded_count", n_succ)
-        print(f"{len(ids)} alerts to classify ({n_succ} attacks that succeeded, flagged or not; plus flagged ones) -> {ids_file.name}")
+        print(f"{len(ids)} alerts to classify (scope '{scope}': {n_succ} attacks that succeeded, flagged or not"
+              + ("; plus every flagged alert" if scope != "succeeded" else "") + f") -> {ids_file.name}")
         if n_succ == 0:
             raise Stop("no attack succeeded in the attack round: nothing to harden")
     if not cy.state["settings"]["require_mapper"]:
