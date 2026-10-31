@@ -6,3 +6,4 @@ cycles/*/*
 !cycles/*/approval.json
 cycles/.lock
 *.tmp
+config.local.json

@@ -1,6 +1,8 @@
 {
   "root": null,
   "compose_dir": null,
+  "alert_store": null,
+  "mapper_dir": null,
   "python": null,
   "testbed": "http://localhost:8000",
   "db": "alerts.db",
@@ -47,7 +49,8 @@
         "--ids-file",
         "{ids_file}"
       ],
-      "in_container": false
+      "in_container": false,
+      "cwd": "{mapper_parent}"
     },
     "import": {
       "run": [
@@ -71,7 +74,7 @@
     "placeholders": "{python} {root} {cycle_dir} {cycle_dir_c} {db} {db_c} {base} {mapper_db} {mapper_db_c}; classify also {ids_file} {ids_file_c} {round}, and {mapper_run} in a command after the one that printed it; import also {mapper_run} {round}; playbooks {mapper_run} {round}; evaluate {base_round} {candidate_round} {candidate} {mapper_run}. *_c = path inside the container. {mapper_db} = <cycle folder>/mapper_results.db: classify must write or export its run there (one run per file), import reads it.",
     "mapper_run_regex": "how the Mapper run id is found in the classify output (last match wins); the live runner prints MAPPER_RUN_ID <id>",
     "extra_seen": "more files whose prompts count as seen: replay-set style .json, or gate.py --out .jsonl files from hardening done by hand (e.g. the v6 eligible.jsonl from the seed-42 round)",
-    "layout": "root: folder that holds attack_generation/, auto_hardening/, alert_store/, testbed/ (relative to the folder above orchestrator/, or absolute; null = that folder). compose_dir: where docker-compose.yml is and `docker compose` runs (null = root). Both must point at the tree the LIVE stack runs from, otherwise rounds and annotate use different databases. python: interpreter for run_round.py and the other host scripts (run_round.py starts Garak and PyRIT with it, so use the venv that has them; null = the Python running run_cycle.py).",
+    "layout": "Machine paths: put them in orchestrator/config.local.json (git-ignored), not here; its keys override this file. root: folder with attack_generation/, auto_hardening/, testbed/. compose_dir: where docker-compose.yml is. alert_store: the folder docker-compose mounts at /app/alert_store (default root/alert_store). mapper_dir: the mapper package (default root/mapper). Paths are relative to the folder above orchestrator/ or absolute; null = default. They must point at the tree the LIVE stack runs from. python: interpreter for run_round.py and the host scripts (the venv with Garak and PyRIT).",
     "classify": "Gladwin's live runner (mapper/pilot.py, run as a module from root). --db is the cycle's mapper_results.db, which the script creates just before this step as a copy of the alert store with mapper_results emptied, so the runner finds the alerts and the file holds exactly one run for the import. Needs ANTHROPIC_API_KEY in .env on the machine running it. The runner prints 'MAPPER_RUN_ID <id>' at the end."
   }
 }

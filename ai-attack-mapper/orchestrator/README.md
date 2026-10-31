@@ -16,9 +16,11 @@ Steps: attack, grade, classify, import, playbooks, gate, harden, verify_candidat
 
 ## Before the first real run
 
-1. **Machine settings** in `config.json` on the testbed machine:
-   - `root`: the folder the LIVE stack uses that holds `attack_generation/`, `auto_hardening/`, `alert_store/`, `testbed/` (e.g. `live_attack_path`). `compose_dir`: where `docker-compose.yml` is. Both `null` = this clone. They must point at the tree the running testbed writes to, or rounds and annotate use different databases.
+1. **Machine settings** go in `orchestrator/config.local.json` (git-ignored; copy `config.local.example.json`). Its keys override `config.json`, so pulls never conflict:
+   - `root`: folder with `attack_generation/`, `auto_hardening/`, `testbed/` of the LIVE stack (e.g. `live_attack_path`); `compose_dir`: where `docker-compose.yml` is;
+   - `alert_store`: the folder docker-compose mounts at `/app/alert_store` (default `root/alert_store`); `mapper_dir`: the `mapper` package (default `root/mapper`);
    - `python`: the venv Python that has Garak and PyRIT (`run_round.py` starts them with it).
+   They must point at the tree the running testbed writes to, or rounds and annotate use different databases. A wrong path stops the script at once.
 2. `commands.classify` is set: Gladwin's live runner (`python -m mapper.pilot --db {mapper_db} run --backend claude --model claude-haiku-5-5 --split live --ids-file {ids_file}`). Just before it runs, the script makes `{mapper_db}` (`<cycle folder>/mapper_results.db`) as a backup-API copy of the alert store with `mapper_results` emptied, so the runner finds the alerts and the file holds exactly one run for the import. The runner prints `MAPPER_RUN_ID <id>`. Needs `ANTHROPIC_API_KEY` in `.env`.
 3. `commands.import` is already set: Aneeq's `import_mapper_results.py --expect-round <round> --apply` in the container (it checks the ids and backs up the alert store first).
 4. `commands.playbooks` and `commands.evaluate` can stay `null`; those steps are skipped and noted in the summary.
@@ -32,14 +34,14 @@ python orchestrator/run_cycle.py snapshot --to cycle_test.db
 python orchestrator/run_cycle.py start --base 1 --db cycle_test.db --attack-round <existing graded round> --stop-after gate
 ```
 
-The snapshot uses the SQLite backup API. With `--attack-round` no new round is run; `--stop-after gate` stops before anything is stored on the testbed.
+The snapshot uses the SQLite backup API. With `--attack-round` no new round is run; `--stop-after gate` stops before anything is stored on the testbed. Classify still makes real Claude calls. Seeds are only reserved when a round actually runs, and a cycle's eligible prompts only count as seen once it has built a new prompt version, so a rehearsal leaves both untouched.
 
 ## Rules
 
 - Only `approve` activates a version; it shows the diff and asks you to type the version number. A REJECT can be activated only with `--override-reason` (logged); an INCONCLUSIVE never (re-run the check instead).
 - `hardening_applied` is set only for that cycle's eligible alerts, only after activation succeeded; `rollback` re-activates the base and clears it.
 - All alert-store writes (annotate, Mapper import, hardening_applied) run inside the testbed container. The import script backs up the alert store itself; `approve` makes a backup in `alert_store/backups/` first.
-- Seeds are recorded in `seeds_used.json` and cannot be reused by another cycle. Both verification rounds use the same seed and the same flags.
+- Seeds are recorded in `seeds_used.json` when a round uses them and cannot be reused by another cycle. Both verification rounds use the same seed and the same flags.
 - An interrupted or failed round is marked INVALID in `rounds.json`; `resume` runs a new one. If the attack round's judge scores are missing, the round is replaced (the gate would skip it).
 - The prompts the clauses were written from (eligible prompts of every cycle) count as seen, so `decide.py --variants fresh` only judges held-out prompts.
 - `skip_families` comes from `config.json`; target families come from `harden.py`'s history entry for the new version.

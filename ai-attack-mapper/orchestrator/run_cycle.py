@@ -48,22 +48,26 @@ LOCK = CYCLES / ".lock"
 # (default: the folder above orchestrator/); COMPOSE = where `docker compose` runs (default ROOT); PY = Python for the
 # host-side scripts (run_round.py starts Garak and PyRIT with this interpreter, so it must be the venv that has them).
 ROOT = COMPOSE = HERE.parent
-AG, AH, AS = ROOT / "attack_generation", ROOT / "auto_hardening", ROOT / "alert_store"
+AG, AH, AS, MAPPER = ROOT / "attack_generation", ROOT / "auto_hardening", ROOT / "alert_store", ROOT / "mapper"
 ROUNDS_JSON = AG / "reports" / "rounds.json"
 PY = sys.executable
 
 
 def apply_layout(cfg):
-    global ROOT, COMPOSE, AG, AH, AS, ROUNDS_JSON, PY
+    global ROOT, COMPOSE, AG, AH, AS, MAPPER, ROUNDS_JSON, PY
     base = HERE.parent
-    ROOT = (base / cfg["root"]).resolve() if cfg.get("root") else base          # absolute paths work too
-    COMPOSE = (base / cfg["compose_dir"]).resolve() if cfg.get("compose_dir") else ROOT
-    AG, AH, AS = ROOT / "attack_generation", ROOT / "auto_hardening", ROOT / "alert_store"
+    where = lambda key, default: (base / cfg[key]).resolve() if cfg.get(key) else default   # relative to the clone, or absolute
+    ROOT = where("root", base)
+    COMPOSE = where("compose_dir", ROOT)
+    AG, AH = ROOT / "attack_generation", ROOT / "auto_hardening"
+    AS = where("alert_store", ROOT / "alert_store")        # must be the folder docker-compose mounts at /app/alert_store
+    MAPPER = where("mapper_dir", ROOT / "mapper")          # the mapper package; classify runs `-m mapper.pilot` from its parent
     ROUNDS_JSON = AG / "reports" / "rounds.json"
     PY = cfg.get("python") or sys.executable
-    missing = [str(p) for p in (AG, AH, AS, ROOT / "testbed", COMPOSE / "docker-compose.yml") if not p.exists()]
+    missing = [str(p) for p in (AG, AH, AS, MAPPER, ROOT / "testbed", COMPOSE / "docker-compose.yml") if not p.exists()]
     if missing:
-        sys.exit("config.json root / compose_dir do not match this machine; missing: " + ", ".join(missing))
+        sys.exit("root / compose_dir / alert_store / mapper_dir (config.json or config.local.json) do not match this machine; missing: "
+                 + ", ".join(missing))
 
 
 def rel(p):
@@ -123,9 +127,18 @@ def save_json(path, data):
 
 
 def load_config():
+    """config.json (tracked), then config.local.json (git-ignored, per machine) on top: its keys replace config.json's,
+    and its "commands" entries replace single commands. Keeps machine paths out of the tracked file."""
     if not CONFIG.exists():
         sys.exit(f"missing {CONFIG}")
-    return json.loads(CONFIG.read_text(encoding="utf-8"))
+    cfg = json.loads(CONFIG.read_text(encoding="utf-8"))
+    local = HERE / "config.local.json"
+    if local.exists():
+        over = json.loads(local.read_text(encoding="utf-8"))
+        cmds = {**cfg.get("commands", {}), **over.pop("commands", {})}
+        cfg.update(over); cfg["commands"] = cmds
+        cfg["_local"] = sorted(over) + (["commands"] if cmds != cfg.get("commands") else [])
+    return cfg
 
 
 def http(method, url, body=None, timeout=30):
@@ -244,7 +257,7 @@ class Cycle:
     def container(self, inner):
         """Command that runs `inner` inside a one-off testbed container (SQLite writes over the host mount fail)."""
         c = self.cfg
-        mounts = [(AG, "/app/attack_generation"), (AH, "/app/auto_hardening"), (HERE, "/app/orchestrator"), (ROOT / "mapper", "/app/mapper")]
+        mounts = [(AG, "/app/attack_generation"), (AH, "/app/auto_hardening"), (HERE, "/app/orchestrator"), (MAPPER, "/app/mapper")]
         cmd = list(c["container"])
         for host, target in mounts:
             cmd += ["-v", f"{host}:{target}:ro"]
@@ -257,7 +270,7 @@ class Cycle:
         if not spec:
             return None
         cdir_c = f"/app/orchestrator/cycles/{self.name}"
-        values = {"python": PY, "root": str(ROOT), "cycle_dir": str(self.dir), "cycle_dir_c": cdir_c,
+        values = {"python": PY, "root": str(ROOT), "mapper_parent": str(MAPPER.parent), "cycle_dir": str(self.dir), "cycle_dir_c": cdir_c,
                   "db": str(self.db), "db_c": self.db_c, "base": self.state["settings"]["base"],
                   # one Mapper results file per cycle: the import refuses a source holding more than one run
                   "mapper_db": str(self.dir / "mapper_results.db"), "mapper_db_c": f"{cdir_c}/mapper_results.db"}
@@ -273,7 +286,8 @@ class Cycle:
                 cmd = [str(p).format(**values) for p in run]
             except KeyError as e:
                 raise StepFailed(f"config commands.{key} uses {{{e.args[0]}}}, which is not available for this step")
-            out.append((self.container(cmd), COMPOSE) if spec.get("in_container") else (cmd, ROOT / spec.get("cwd", ".")))
+            out.append((self.container(cmd), COMPOSE) if spec.get("in_container")
+                       else (cmd, ROOT / str(spec.get("cwd", ".")).format(**values)))
         return out
 
 
@@ -292,6 +306,8 @@ def round_step(cy, step, version_key, seed_key):
                 cy.state.setdefault("abandoned_rounds", []).append({"step": step, "round": prev, "at": now()})
         st["round"] = None; cy.state["values"].pop(f"round_{step}", None); cy.save()
     version = s["base"] if version_key == "base" else cy.val(version_key)
+    if not cy.dry:
+        reserve_seed(cy.name, s[seed_key], "attack" if seed_key == "seed" else "verify")
     cmd = [PY, "run_round.py", "--prompt-version", version, "--seed", s[seed_key], "--probes", s["probes"]]
     if s["skip_pyrit"]:
         cmd.append("--skip-pyrit")
@@ -532,16 +548,21 @@ def seen_files(cy):
     """Prompts that count as seen: the replay sets, plus the eligible prompts of EVERY cycle so far (the clauses were written
     from them). live_results.py only knows the replay sets, so without this the 'fresh' set overlaps the training attacks."""
     files = [ROOT / p for p in cy.cfg.get("seen_sets", [])] + [ROOT / p for p in cy.cfg.get("extra_seen", []) if not p.endswith(".jsonl")]
-    texts = set()
+    texts, per_file = set(), {}
     extra_jsonl = [ROOT / p for p in cy.cfg.get("extra_seen", []) if p.endswith(".jsonl")]   # gate.py --out files from manual runs
-    for el in extra_jsonl + sorted(CYCLES.glob("*/eligible.jsonl")):
-        for line in el.read_text(encoding="utf-8").splitlines():
-            if line.strip():
-                texts.add(json.loads(line)["prompt"].strip())
+    def built_rules(el):   # only cycles whose eligible prompts were turned into clauses (a rehearsal that stops at the gate wrote none)
+        st = load_json(el.parent / "state.json", {})
+        return el.parent == cy.dir or bool(st.get("values", {}).get("candidate"))
+    for el in extra_jsonl + [e for e in sorted(CYCLES.glob("*/eligible.jsonl")) if built_rules(e)]:
+        if not el.exists():
+            raise StepFailed(f"extra_seen file not found: {el}")
+        got = {json.loads(l)["prompt"].strip() for l in el.read_text(encoding="utf-8").splitlines() if l.strip()}
+        per_file[rel(el)] = len(got); texts |= got
     out = cy.f("seen_eligible.json")
+    print("prompts counted as seen (eligible files): " + ", ".join(f"{k} {v}" for k, v in per_file.items()) + f"; {len(texts)} distinct in total")
     if not cy.dry:
         save_json(out, [{"text": t} for t in sorted(texts)])
-        cy.setv("seen_eligible_prompts", len(texts))
+        cy.setv("seen_eligible_prompts", len(texts)); cy.setv("seen_eligible_files", per_file)
     return files + [out]
 
 
@@ -604,7 +625,8 @@ def write_summary(cy):
          f"- Eligible for hardening: {v.get('eligible_count', '-')} {v.get('eligible_families', '')}",
          f"- Clauses added: {v.get('clauses', '-')}; skipped families: {s['skip_families']}; target families: {v.get('target_families', '-')}",
          f"- Verification rounds (seed {s['verify_seed']}): candidate `{v.get('round_verify_candidate', '-')}`, base `{v.get('round_verify_base', '-')}`",
-         f"- Seen prompts excluded from the fresh set: replay sets + {v.get('seen_eligible_prompts', '-')} eligible prompts from all cycles",
+         f"- Seen prompts excluded from the fresh set: replay sets + {v.get('seen_eligible_prompts', '-')} distinct eligible prompts "
+         f"({', '.join(f'{k}: {n}' for k, n in (v.get('seen_eligible_files') or {}).items()) or '-'})",
          "", "## Steps", "", "| Step | Status | Note |", "|---|---|---|"]
     for n, label in STEPS:
         st = cy.state["steps"].get(n, {})
@@ -697,6 +719,17 @@ def check_seeds(name, seed, verify_seed):
             sys.exit(f"seed {sd} was already used by cycle {u['cycle']} ({u['role']}). Pick new seeds (used: {sorted(map(int, used))}).")
 
 
+def reserve_seed(cycle, seed, role):
+    """Record a seed the moment a round uses it (a rehearsal that stops before the rounds reserves nothing)."""
+    used = load_json(SEEDS, {})
+    u = used.get(str(seed))
+    if u and u["cycle"] != cycle:
+        raise StepFailed(f"seed {seed} was already used by cycle {u['cycle']} ({u['role']}); start a new cycle with other seeds")
+    if not u:
+        used[str(seed)] = {"cycle": cycle, "role": role, "at": now()}
+        save_json(SEEDS, used)
+
+
 def next_free_seeds(n=2):
     used = {int(k) for k in load_json(SEEDS, {})}
     out, s = [], 42
@@ -750,11 +783,6 @@ def cmd_start(a, cfg):
     if not a.dry_run:
         cy.dir.mkdir(parents=True)
         cy.save()
-        used = load_json(SEEDS, {})
-        if a.seed is not None:
-            used[str(a.seed)] = {"cycle": name, "role": "attack", "at": now()}
-        used[str(a.verify_seed)] = {"cycle": name, "role": "verify", "at": now()}
-        save_json(SEEDS, used)
     return execute(cy, stop_after=a.stop_after)
 
 
