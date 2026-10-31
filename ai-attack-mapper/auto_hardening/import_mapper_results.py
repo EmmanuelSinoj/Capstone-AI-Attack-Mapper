@@ -10,12 +10,14 @@ What it does (and nothing else):
   * reads the Mapper results database READ-ONLY (table mapper_results);
   * checks that every alert_id exists in --db and that its run_id is one of the allowed runs (so rows cannot land on the wrong alerts),
     that all rows are one run_id, and that every source column exists in the destination;
-  * with --apply: first makes a SQLite backup of --db next to it (alerts.db.bak-pre-mapper-import-<run>), then inserts the rows
+  * with --apply: first makes a SQLite backup of --db next to it (alerts.db.bak-pre-mapper-import-<run>; if that name exists from an
+    earlier attempt, <name>-<UTC timestamp> is used and the first backup is kept), then inserts the rows
     WITHOUT the source id column (the destination assigns its own), INSERT OR IGNORE on (alert_id, run_id, repeat_no),
     in one transaction, and prints before/after counts. Nothing in the alerts table is touched.
 Stdlib only. Never deletes anything.
 """
 import argparse, sqlite3, sys, pathlib
+from datetime import datetime, timezone
 
 
 def main():
@@ -73,7 +75,15 @@ def main():
 
     bak = pathlib.Path(a.db).with_name(pathlib.Path(a.db).name + f".bak-pre-mapper-import-{run}")
     if bak.exists():
-        sys.exit(f"backup already exists: {bak}")
+        # A second import of the same Mapper run (e.g. `resume` after a crash): keep the first backup
+        # and write this one next to it under a UTC timestamp. The insert below is INSERT OR IGNORE,
+        # so repeating it is safe. An existing backup is never overwritten.
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+        cand, n = bak.with_name(bak.name + f"-{stamp}"), 1
+        while cand.exists():          # two attempts in the same second
+            n += 1
+            cand = bak.with_name(bak.name + f"-{stamp}-{n}")
+        bak = cand
     b = sqlite3.connect(bak)
     dst.backup(b)
     b.close()
