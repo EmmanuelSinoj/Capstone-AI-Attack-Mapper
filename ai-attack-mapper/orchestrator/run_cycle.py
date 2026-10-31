@@ -42,17 +42,43 @@ Stdlib only."""
 import argparse, datetime, difflib, getpass, json, os, pathlib, re, shutil, sqlite3, subprocess, sys, time, urllib.request
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parent
-AG, AH, AS = ROOT / "attack_generation", ROOT / "auto_hardening", ROOT / "alert_store"
-ROUNDS_JSON = AG / "reports" / "rounds.json"
 CYCLES, SEEDS, CONFIG = HERE / "cycles", HERE / "seeds_used.json", HERE / "config.json"
 LOCK = CYCLES / ".lock"
+# Set by apply_layout() from config.json: ROOT = folder holding attack_generation/, auto_hardening/, alert_store/, testbed/
+# (default: the folder above orchestrator/); COMPOSE = where `docker compose` runs (default ROOT); PY = Python for the
+# host-side scripts (run_round.py starts Garak and PyRIT with this interpreter, so it must be the venv that has them).
+ROOT = COMPOSE = HERE.parent
+AG, AH, AS = ROOT / "attack_generation", ROOT / "auto_hardening", ROOT / "alert_store"
+ROUNDS_JSON = AG / "reports" / "rounds.json"
 PY = sys.executable
+
+
+def apply_layout(cfg):
+    global ROOT, COMPOSE, AG, AH, AS, ROUNDS_JSON, PY
+    base = HERE.parent
+    ROOT = (base / cfg["root"]).resolve() if cfg.get("root") else base          # absolute paths work too
+    COMPOSE = (base / cfg["compose_dir"]).resolve() if cfg.get("compose_dir") else ROOT
+    AG, AH, AS = ROOT / "attack_generation", ROOT / "auto_hardening", ROOT / "alert_store"
+    ROUNDS_JSON = AG / "reports" / "rounds.json"
+    PY = cfg.get("python") or sys.executable
+    missing = [str(p) for p in (AG, AH, AS, ROOT / "testbed", COMPOSE / "docker-compose.yml") if not p.exists()]
+    if missing:
+        sys.exit("config.json root / compose_dir do not match this machine; missing: " + ", ".join(missing))
+
+
+def rel(p):
+    """Short path for messages (cycle files live next to this script, which may be outside ROOT)."""
+    for base in (HERE.parent, ROOT):
+        try:
+            return str(pathlib.Path(p).resolve().relative_to(base))
+        except ValueError:
+            pass
+    return str(p)
 
 STEPS = [
     ("attack", "Attack round on the base version"),
     ("grade", "Grade the attack round (container)"),
-    ("classify", "Mapper on succeeded + flagged alerts of the round"),
+    ("classify", "Mapper on every succeeded attack of the round, plus flagged alerts"),
     ("import", "Import Mapper results into the alert store (container)"),
     ("playbooks", "Playbooks for the classified alerts"),
     ("gate", "Gate: eligible attacks for hardening"),
@@ -180,10 +206,11 @@ class Cycle:
         self.save()
 
     # running commands --------------------------------------------------------------------------------------------
-    def run(self, step, cmd, cwd=ROOT, on_line=None, ok_codes=(0,)):
+    def run(self, step, cmd, cwd=None, on_line=None, ok_codes=(0,)):
         """Run one command, streaming its output to the console and to logs/<step>.log. Returns (rc, output)."""
         cmd = [str(c) for c in cmd]
-        where = os.path.relpath(cwd, ROOT)
+        cwd = cwd or ROOT
+        where = rel(cwd)
         print(f"\n$ [{where}] " + " ".join(c if " " not in c else f'"{c}"' for c in cmd), flush=True)
         if self.dry:
             return 0, ""
@@ -211,37 +238,43 @@ class Cycle:
             lf.write(f"===== exit {rc}\n")
         text = "".join(out)
         if rc not in ok_codes:
-            raise StepFailed(f"exit code {rc}: {' '.join(cmd[:4])} ... (log: {log.relative_to(ROOT)})")
+            raise StepFailed(f"exit code {rc}: {' '.join(cmd[:4])} ... (log: {rel(log)})")
         return rc, text
 
     def container(self, inner):
         """Command that runs `inner` inside a one-off testbed container (SQLite writes over the host mount fail)."""
         c = self.cfg
         mounts = [(AG, "/app/attack_generation"), (AH, "/app/auto_hardening"), (HERE, "/app/orchestrator"), (ROOT / "mapper", "/app/mapper")]
-        if c.get("mapper_db"):
-            mounts.append((pathlib.Path(c["mapper_db"]).resolve().parent, "/app/mapper_src"))
         cmd = list(c["container"])
         for host, target in mounts:
             cmd += ["-v", f"{host}:{target}:ro"]
         return cmd + [c["container_service"]] + list(inner)
 
-    def team_command(self, key, extra):
-        """A command owned by a teammate, from config.json commands.<key> (None while it is not available)."""
+    def team_command(self, key, extra, only=None):
+        """Commands owned by a teammate, from config.json commands.<key>: a list of (cmd, cwd), or None while not available.
+        "run" is one command (list of args) or several (list of lists, run in order, e.g. Gladwin's run + export-run)."""
         spec = self.cfg.get("commands", {}).get(key)
         if not spec:
             return None
-        values = {"python": PY, "root": str(ROOT), "cycle_dir": str(self.dir), "cycle_dir_c": f"/app/orchestrator/cycles/{self.name}",
+        cdir_c = f"/app/orchestrator/cycles/{self.name}"
+        values = {"python": PY, "root": str(ROOT), "cycle_dir": str(self.dir), "cycle_dir_c": cdir_c,
                   "db": str(self.db), "db_c": self.db_c, "base": self.state["settings"]["base"],
-                  "mapper_db": str(self.cfg.get("mapper_db") or ""),
-                  "mapper_db_c": "/app/mapper_src/" + pathlib.Path(self.cfg["mapper_db"]).name if self.cfg.get("mapper_db") else ""}
+                  # one Mapper results file per cycle: the import refuses a source holding more than one run
+                  "mapper_db": str(self.dir / "mapper_results.db"), "mapper_db_c": f"{cdir_c}/mapper_results.db"}
         values.update(extra)
-        try:
-            cmd = [str(p).format(**values) for p in spec["run"]]
-        except KeyError as e:
-            raise StepFailed(f"config commands.{key} uses {{{e.args[0]}}}, which is not available for this step")
-        if spec.get("in_container"):
-            return self.container(cmd), ROOT
-        return cmd, ROOT / spec.get("cwd", ".")
+        runs = spec["run"] if spec["run"] and isinstance(spec["run"][0], list) else [spec["run"]]
+        if only is not None:          # format one command (a later one may use a value an earlier one printed)
+            if only >= len(runs):
+                return []
+            runs = [runs[only]]
+        out = []
+        for run in runs:
+            try:
+                cmd = [str(p).format(**values) for p in run]
+            except KeyError as e:
+                raise StepFailed(f"config commands.{key} uses {{{e.args[0]}}}, which is not available for this step")
+            out.append((self.container(cmd), COMPOSE) if spec.get("in_container") else (cmd, ROOT / spec.get("cwd", ".")))
+        return out
 
 
 # ------------------------------------------------------------------------------------------------------------- steps
@@ -288,7 +321,7 @@ def round_step(cy, step, version_key, seed_key):
 def grade_step(cy, step, round_step_name, judge_must_be_valid):
     tok = cy.val(f"round_{round_step_name}")
     inner = ["python3", "/app/attack_generation/annotate_run.py", tok, "--db", cy.db_c]
-    rc, _ = cy.run(step, cy.container(inner), cwd=ROOT, ok_codes=(0, 3))
+    rc, _ = cy.run(step, cy.container(inner), cwd=COMPOSE, ok_codes=(0, 3))
     if rc == 3:
         if judge_must_be_valid:
             mark_round_invalid(tok, f"orchestrator cycle {cy.name}: judge scores missing in round (annotate_run.py exit 3)")
@@ -333,7 +366,7 @@ def step_classify(cy):
             raise Stop("no attack succeeded in the attack round: nothing to harden")
     if not cy.state["settings"]["require_mapper"]:
         print("require_mapper is false in config.json: the Mapper is not needed for the gate")
-    made = cy.team_command("classify", {"ids_file": str(ids_file), "ids_file_c": f"/app/orchestrator/cycles/{cy.name}/classify_ids.txt", "round": tok})
+    made = cy.cfg.get("commands", {}).get("classify") or None
     if made is None and cy.dry:
         print("(config.json commands.classify is not set: a real run stops here until it is)")
         return
@@ -342,8 +375,18 @@ def step_classify(cy):
             raise Stop("waiting for config.json commands.classify (Gladwin's live runner). Add it, then `resume`.")
         cy.step("classify")["note"] = "skipped: commands.classify not configured"
         return
-    cmd, cwd = made
-    _, out = cy.run("classify", cmd, cwd=cwd)
+    extra = {"ids_file": str(ids_file), "ids_file_c": f"/app/orchestrator/cycles/{cy.name}/classify_ids.txt", "round": tok}
+    out, i = "", 0
+    while True:   # one command at a time: e.g. `run` prints the Mapper run id, then `export-run --run-id {mapper_run}` uses it
+        found = re.findall(cy.cfg["mapper_run_regex"], out)
+        if found or cy.dry:
+            extra["mapper_run"] = found[-1] if found else "<mapper_run>"
+        step_cmds = cy.team_command("classify", extra, only=i)
+        if not step_cmds:
+            break
+        cmd, cwd = step_cmds[0]
+        out += cy.run("classify", cmd, cwd=cwd)[1]
+        i += 1
     runs_found = re.findall(cy.cfg["mapper_run_regex"], out)
     run_id = runs_found[-1] if runs_found else ("<mapper_run>" if cy.dry else None)
     if not run_id:
@@ -362,12 +405,10 @@ def step_import(cy):
         return
     if made is None:
         raise Stop("waiting for config.json commands.import (Aneeq's import_mapper_results.py). Add it, then `resume`.")
-    backup = AS / "backups" / f"{pathlib.Path(cy.db_name).stem}.{cy.name}.before-import.db"
-    print(f"backup (SQLite backup API): {backup.relative_to(ROOT)}")
-    if not cy.dry:
-        sqlite_backup(cy.db, backup); cy.setv("backup_before_import", str(backup.relative_to(ROOT)))
-    cmd, cwd = made
-    cy.run("import", cmd, cwd=cwd)
+    if not cy.dry and not cy.f("mapper_results.db").exists():
+        raise StepFailed("no mapper_results.db in the cycle folder: commands.classify must write (or export) its run to {mapper_db}")
+    for cmd, cwd in made:      # import_mapper_results.py checks the ids, backs up the alert store, then inserts
+        cy.run("import", cmd, cwd=cwd)
     if cy.dry:
         return
     ids = [int(x) for x in cy.f("classify_ids.txt").read_text(encoding="utf-8").split()]
@@ -388,8 +429,8 @@ def step_playbooks(cy):
         cy.step("playbooks")["note"] = "skipped: commands.playbooks not configured yet"
         print("playbooks: not available yet (config.json commands.playbooks is null), skipped")
         return
-    cmd, cwd = made
-    cy.run("playbooks", cmd, cwd=cwd)
+    for cmd, cwd in made:
+        cy.run("playbooks", cmd, cwd=cwd)
 
 
 def step_gate(cy):
@@ -520,8 +561,8 @@ def step_evaluate(cy):
         cy.step("evaluate")["note"] = "skipped: commands.evaluate not configured yet"
         print("evaluate: not available yet (config.json commands.evaluate is null), skipped")
         return
-    cmd, cwd = made
-    cy.run("evaluate", cmd, cwd=cwd)
+    for cmd, cwd in made:
+        cy.run("evaluate", cmd, cwd=cwd)
 
 
 def step_summary(cy):
@@ -529,7 +570,7 @@ def step_summary(cy):
         print("\n(summary.md is written here, then the cycle stops for approval)")
         return
     write_summary(cy)
-    print(f"\nSummary: {cy.f('summary.md').relative_to(ROOT)}")
+    print(f"\nSummary: {rel(cy.f('summary.md'))}")
     v = cy.state["values"]
     print(f"VERDICT {v.get('verdict')}. Nothing is active yet. Next: python orchestrator/run_cycle.py approve --cycle {cy.name}")
 
@@ -580,7 +621,7 @@ def acquire_lock(dry):
         fd = os.open(LOCK, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         os.write(fd, f"{os.getpid()} {now()}".encode()); os.close(fd)
     except FileExistsError:
-        sys.exit(f"another cycle is running ({LOCK.read_text()}). If that is wrong (it crashed), delete {LOCK.relative_to(ROOT)}.")
+        sys.exit(f"another cycle is running ({LOCK.read_text()}). If that is wrong (it crashed), delete {rel(LOCK)}.")
 
 
 def release_lock(dry):
@@ -671,7 +712,7 @@ def cmd_start(a, cfg):
     check_seeds(name, a.seed, a.verify_seed)
     db = a.db or cfg["db"]
     if not (AS / db).exists():
-        sys.exit(f"{(AS / db).relative_to(ROOT)} not found")
+        sys.exit(f"{rel(AS / db)} not found")
     if not a.dry_run:
         if (CYCLES / name).exists():
             sys.exit(f"cycle {name} already exists; use resume")
@@ -747,7 +788,7 @@ def set_hardening_flag(cy, ids, value, step):
     ids_file.write_text("\n".join(map(str, ids)) + "\n", encoding="utf-8")
     inner = ["python3", "/app/orchestrator/mark_hardened.py", "--db", cy.db_c, "--ids-file",
              f"/app/orchestrator/cycles/{cy.name}/{ids_file.name}", "--value", str(value)]
-    cy.run(step, cy.container(inner), cwd=ROOT)
+    cy.run(step, cy.container(inner), cwd=COMPOSE)
 
 
 def activate(cfg, version):
@@ -777,13 +818,13 @@ def cmd_approve(a, cfg):
         print(f"OVERRIDE: activating despite {verdict}. Reason: {a.override_reason}")
     print("\n--- prompt change ---")
     print(cy.f("prompt_diff.txt").read_text(encoding="utf-8") if cy.f("prompt_diff.txt").exists() else "(no diff file)")
-    print(f"--- decide.txt: {cy.f('decide.txt').relative_to(ROOT)}  |  summary: {cy.f('summary.md').relative_to(ROOT)}\n")
+    print(f"--- decide.txt: {rel(cy.f('decide.txt'))}  |  summary: {rel(cy.f('summary.md'))}\n")
     typed = input(f"Type the version number to activate it on the live chatbot ({cand}), anything else cancels: ").strip()
     if typed != str(cand):
         sys.exit("cancelled; nothing changed")
     ids = [json.loads(l)["rowid"] for l in cy.f("eligible.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
     backup = sqlite_backup(cy.db, AS / "backups" / f"{pathlib.Path(cy.db_name).stem}.{cy.name}.before-approve.db")
-    print(f"backup: {backup.relative_to(ROOT)}")
+    print(f"backup: {rel(backup)}")
     try:
         activate(cfg, cand)
     except Exception as e:  # noqa: BLE001
@@ -825,9 +866,9 @@ def cmd_rollback(a, cfg):
 def cmd_snapshot(a, cfg):
     src, dst = AS / (a.source or cfg["db"]), AS / a.to
     if dst.exists():
-        sys.exit(f"{dst.relative_to(ROOT)} exists; pick another name")
+        sys.exit(f"{rel(dst)} exists; pick another name")
     sqlite_backup(src, dst)
-    print(f"{dst.relative_to(ROOT)} written with the SQLite backup API. Use it with: start --db {a.to} --attack-round <existing round> --stop-after gate")
+    print(f"{rel(dst)} written with the SQLite backup API. Use it with: start --db {a.to} --attack-round <existing round> --stop-after gate")
     return 0
 
 
@@ -838,6 +879,7 @@ def main():
         except AttributeError:
             pass
     cfg = load_config()
+    apply_layout(cfg)
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("start", help="start a new cycle")

@@ -16,11 +16,14 @@ Steps: attack, grade, classify, import, playbooks, gate, harden, verify_candidat
 
 ## Before the first real run
 
-1. `config.json` → `commands.classify`: Gladwin's live runner (with `--ids-file`), and `mapper_db` (the database it writes to).
-2. `config.json` → `commands.import`: Aneeq's `import_mapper_results.py` (runs in the container).
-3. `commands.playbooks` and `commands.evaluate` can stay `null`; those steps are skipped and noted in the summary.
+1. **Machine settings** in `config.json` on the testbed machine:
+   - `root`: the folder the LIVE stack uses that holds `attack_generation/`, `auto_hardening/`, `alert_store/`, `testbed/` (e.g. `live_attack_path`). `compose_dir`: where `docker-compose.yml` is. Both `null` = this clone. They must point at the tree the running testbed writes to, or rounds and annotate use different databases.
+   - `python`: the venv Python that has Garak and PyRIT (`run_round.py` starts them with it).
+2. `commands.classify`: Gladwin's live runner with `--ids-file {ids_file}`. It must leave its run in `{mapper_db}` (= `<cycle folder>/mapper_results.db`, one run per file), either by writing there directly or with a second command such as `export-run --run-id {mapper_run} --out {mapper_db}`. Several commands are written as a list of lists.
+3. `commands.import` is already set: Aneeq's `import_mapper_results.py --expect-round <round> --apply` in the container (it checks the ids and backs up the alert store first).
+4. `commands.playbooks` and `commands.evaluate` can stay `null`; those steps are skipped and noted in the summary.
 
-Until 1 and 2 are set, a cycle stops at `classify` with a "waiting for" message and continues with `resume` once they are.
+Until 2 is set, a cycle stops at `classify` with a "waiting for" message and continues with `resume` once it is.
 
 ## Testing without touching alerts.db
 
@@ -35,7 +38,7 @@ The snapshot uses the SQLite backup API. With `--attack-round` no new round is r
 
 - Only `approve` activates a version; it shows the diff and asks you to type the version number. A REJECT can be activated only with `--override-reason` (logged); an INCONCLUSIVE never (re-run the check instead).
 - `hardening_applied` is set only for that cycle's eligible alerts, only after activation succeeded; `rollback` re-activates the base and clears it.
-- All alert-store writes (annotate, Mapper import, hardening_applied) run inside the testbed container. Backups go to `alert_store/backups/` before the import and before approve.
+- All alert-store writes (annotate, Mapper import, hardening_applied) run inside the testbed container. The import script backs up the alert store itself; `approve` makes a backup in `alert_store/backups/` first.
 - Seeds are recorded in `seeds_used.json` and cannot be reused by another cycle. Both verification rounds use the same seed and the same flags.
 - An interrupted or failed round is marked INVALID in `rounds.json`; `resume` runs a new one. If the attack round's judge scores are missing, the round is replaced (the gate would skip it).
 - The prompts the clauses were written from (eligible prompts of every cycle) count as seen, so `decide.py --variants fresh` only judges held-out prompts.

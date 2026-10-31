@@ -1,4 +1,7 @@
 {
+  "root": null,
+  "compose_dir": null,
+  "python": null,
   "testbed": "http://localhost:8000",
   "db": "alerts.db",
   "probes": "promptinject,dan,encoding",
@@ -25,7 +28,6 @@
     "--no-deps"
   ],
   "container_service": "testbed",
-  "mapper_db": null,
   "mapper_run_regex": "(pilot_[A-Za-z0-9_.\\-]+)",
   "commands": {
     "classify": null,
@@ -47,27 +49,38 @@
     "evaluate": null
   },
   "_help": {
-    "commands": "Each command is {\"run\": [args...], \"in_container\": true|false, \"cwd\": \"folder under ai-attack-mapper\"}. null = not available yet: classify/import stop the cycle (the gate needs the Mapper), playbooks/evaluate are skipped and logged.",
-    "placeholders": "{python} {root} {cycle_dir} {cycle_dir_c} {db} {db_c} {base} {mapper_db} {mapper_db_c}; classify also {ids_file} {ids_file_c} {round}; import also {mapper_run} {round}; playbooks {mapper_run} {round}; evaluate {base_round} {candidate_round} {candidate} {mapper_run}. *_c = path inside the container.",
-    "mapper_db": "path to the database Gladwin's runner writes to (mounted read-only into the container at /app/mapper_src for the import)",
+    "commands": "Each command is {\"run\": [args...] or [[args...], [args...]] for several in order, \"in_container\": true|false, \"cwd\": \"folder under root\"}. null = not available yet: classify/import stop the cycle (the gate needs the Mapper), playbooks/evaluate are skipped and logged.",
+    "placeholders": "{python} {root} {cycle_dir} {cycle_dir_c} {db} {db_c} {base} {mapper_db} {mapper_db_c}; classify also {ids_file} {ids_file_c} {round}, and {mapper_run} in a command after the one that printed it; import also {mapper_run} {round}; playbooks {mapper_run} {round}; evaluate {base_round} {candidate_round} {candidate} {mapper_run}. *_c = path inside the container. {mapper_db} = <cycle folder>/mapper_results.db: classify must write or export its run there (one run per file), import reads it.",
     "mapper_run_regex": "how the Mapper run id is found in the classify output (last match wins)",
-    "extra_seen": "more files whose prompts count as seen: replay-set style .json, or gate.py --out .jsonl files from hardening done by hand (e.g. the v6 eligible.jsonl from the seed-42 round)"
+    "extra_seen": "more files whose prompts count as seen: replay-set style .json, or gate.py --out .jsonl files from hardening done by hand (e.g. the v6 eligible.jsonl from the seed-42 round)",
+    "layout": "root: folder that holds attack_generation/, auto_hardening/, alert_store/, testbed/ (relative to the folder above orchestrator/, or absolute; null = that folder). compose_dir: where docker-compose.yml is and `docker compose` runs (null = root). Both must point at the tree the LIVE stack runs from, otherwise rounds and annotate use different databases. python: interpreter for run_round.py and the other host scripts (run_round.py starts Garak and PyRIT with it, so use the venv that has them; null = the Python running run_cycle.py)."
   },
   "_examples": {
     "classify": {
       "run": [
-        "{python}",
-        "mapper/pilot.py",
-        "run",
-        "--backend",
-        "claude",
-        "--split",
-        "live",
-        "--ids-file",
-        "{ids_file}"
+        [
+          "{python}",
+          "mapper/pilot.py",
+          "run",
+          "--backend",
+          "claude",
+          "--split",
+          "live",
+          "--ids-file",
+          "{ids_file}"
+        ],
+        [
+          "{python}",
+          "mapper/pilot.py",
+          "export-run",
+          "--run-id",
+          "{mapper_run}",
+          "--out",
+          "{mapper_db}"
+        ]
       ],
       "in_container": false
     },
-    "_note": "classify: argument names are placeholders until Gladwin's live runner is on the branch."
+    "_note": "classify: argument names are guesses until Gladwin's live runner is on the branch."
   }
-}
+}
