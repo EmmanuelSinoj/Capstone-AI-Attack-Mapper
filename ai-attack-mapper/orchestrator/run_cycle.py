@@ -426,6 +426,16 @@ def step_classify(cy):
     if not run_id:
         raise StepFailed(f"could not find the Mapper run id in the output (regex {cy.cfg['mapper_run_regex']!r})")
     cy.setv("mapper_run", run_id)
+    if not cy.dry and cy.f("mapper_results.db").exists():   # stop BEFORE the import if too many calls failed
+        ids = [int(x) for x in ids_file.read_text(encoding="utf-8").split()]
+        con = sqlite3.connect("file:" + cy.f("mapper_results.db").resolve().as_posix() + "?mode=ro", uri=True)
+        good = {r[0] for r in con.execute("SELECT DISTINCT alert_id FROM mapper_results WHERE run_id = ? AND valid_json = 1", (run_id,))}
+        con.close()
+        nfail = len([i for i in ids if i not in good])
+        limit = float(cy.cfg.get("max_failed_calls_pct", 5.0))
+        if ids and 100 * nfail / len(ids) > limit:
+            raise StepFailed(f"{nfail} of {len(ids)} Mapper calls failed ({100 * nfail / len(ids):.1f}%, limit {limit}%), nothing imported. "
+                             f"Check logs/classify.log (API key, rate limits), then `resume` (classify runs again).")
 
 
 def step_import(cy):
@@ -455,6 +465,11 @@ def step_import(cy):
     print(f"Mapper run {run_id} in {cy.db_name}: {len(good & set(ids))} of {len(ids)} valid, {len(failed)} failed (failed_calls.txt, manual review)")
     if not good:
         raise StepFailed(f"no valid rows for {run_id} in {cy.db_name} after the import")
+    limit = float(cy.cfg.get("max_failed_calls_pct", 5.0))   # like decide.py's failed-request limit
+    share = 100 * len(failed) / max(len(ids), 1)
+    if share > limit:
+        raise StepFailed(f"{len(failed)} of {len(ids)} Mapper calls failed ({share:.1f}%, limit {limit}%): the gate would harden from "
+                         f"an incomplete set. Check logs/classify.log (API key, rate limits), then `resume --only classify`.")
 
 
 def step_playbooks(cy):

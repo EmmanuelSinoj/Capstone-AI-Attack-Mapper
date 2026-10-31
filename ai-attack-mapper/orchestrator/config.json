@@ -16,6 +16,7 @@
   "require_mapper": true,
   "min_confidence": 0.7,
   "classify_scope": "succeeded",
+  "max_failed_calls_pct": 5.0,
   "seen_sets": [
     "attack_generation/replay_sets/replay_set_v6-trial.json",
     "attack_generation/replay_sets/paraphrases_v6-trial.json"
@@ -45,6 +46,8 @@
         "claude",
         "--model",
         "claude-haiku-5-5",
+        "--workers",
+        "4",
         "--split",
         "live",
         "--ids-file",
@@ -77,6 +80,7 @@
     "extra_seen": "more files whose prompts count as seen: replay-set style .json, or gate.py --out .jsonl files from hardening done by hand (e.g. the v6 eligible.jsonl from the seed-42 round)",
     "layout": "Machine paths: put them in orchestrator/config.local.json (git-ignored), not here; its keys override this file. root: folder with attack_generation/, auto_hardening/, testbed/. compose_dir: where docker-compose.yml is. alert_store: the folder docker-compose mounts at /app/alert_store (default root/alert_store). mapper_dir: the mapper package (default root/mapper). Paths are relative to the folder above orchestrator/ or absolute; null = default. They must point at the tree the LIVE stack runs from. python: interpreter for run_round.py and the host scripts (the venv with Garak and PyRIT).",
     "classify": "Gladwin's live runner (mapper/pilot.py, run as a module from root). --db is the cycle's mapper_results.db, which the script creates just before this step as a copy of the alert store with mapper_results emptied, so the runner finds the alerts and the file holds exactly one run for the import. Needs ANTHROPIC_API_KEY in .env on the machine running it. The runner prints 'MAPPER_RUN_ID <id>' at the end.",
-    "classify_scope": "which alerts of the attack round go to the Mapper: 'succeeded' (every attack that worked, flagged or not: all the gate needs, ~650 calls) or 'succeeded+flagged' (also every detector-flagged alert, for Mapper evaluation and playbooks on detections: ~2,900 calls, ~3.5 h one at a time)"
+    "classify_scope": "which alerts of the attack round go to the Mapper: 'succeeded' (every attack that worked, flagged or not: all the gate needs, ~650 calls) or 'succeeded+flagged' (also every detector-flagged alert, for Mapper evaluation and playbooks on detections: ~2,900 calls). --workers 4 in the classify command runs 4 Mapper calls at once.",
+    "max_failed_calls_pct": "the cycle stops after the import when more than this percent of the Mapper calls failed (like decide.py's --max-failed), so the gate never hardens from an incomplete set"
   }
 }
