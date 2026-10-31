@@ -42,6 +42,8 @@ ANTHROPIC_VERSION = "2023-06-01"
 # MAPPER_CLAUDE_MODEL in .env.
 DEFAULT_CLAUDE_MODEL = "claude-haiku-5-5"
 TEMPERATURE = 0.0
+RETRY_STATUS = (429, 500, 502, 503, 529)   # rate limit / server busy: wait and ask again
+RATE_LIMIT_TRIES = 6
 
 
 class BackendError(RuntimeError):
@@ -84,25 +86,36 @@ def call_claude_meta(system_prompt: str, user_message: str, model: str | None = 
     if not api_key:
         raise BackendError("No ANTHROPIC_API_KEY set (environment or .env).")
     t0 = time.time()
-    try:
-        resp = requests.post(
-            ANTHROPIC_API_URL,
-            headers={"x-api-key": api_key, "anthropic-version": ANTHROPIC_VERSION,
-                     "content-type": "application/json"},
-            # No `temperature`: newer Claude models (e.g. Sonnet 5.5) reject it as deprecated.
-            # Replies can therefore vary a little between runs -- the same as in the chat-app
-            # pilot, which is why Claude runs use --repeats.
-            json={"model": model, "max_tokens": max_tokens,
-                  # Prompt caching: the system prompt is identical on every call, so mark it
-                  # cacheable. Later calls within ~5 minutes re-read it at ~10% of the input
-                  # price. It caches the processed prompt, not answers -- replies are unchanged.
-                  "system": [{"type": "text", "text": system_prompt,
-                              "cache_control": {"type": "ephemeral"}}],
-                  "messages": [{"role": "user", "content": user_message}]},
-            timeout=120,
-        )
-    except requests.RequestException as e:
-        raise BackendError(f"Anthropic request failed after {int(time.time() - t0)}s: {e.__class__.__name__}") from e
+    # No `temperature`: newer Claude models (e.g. Sonnet 5.5) reject it as deprecated.
+    # Replies can therefore vary a little between runs -- the same as in the chat-app
+    # pilot, which is why Claude runs use --repeats.
+    body = {"model": model, "max_tokens": max_tokens,
+            # Prompt caching: the system prompt is identical on every call, so mark it
+            # cacheable. Later calls within ~5 minutes re-read it at ~10% of the input
+            # price. It caches the processed prompt, not answers -- replies are unchanged.
+            "system": [{"type": "text", "text": system_prompt,
+                        "cache_control": {"type": "ephemeral"}}],
+            "messages": [{"role": "user", "content": user_message}]}
+    # Rate limit (429) or overload (529/5xx): wait and ask again, up to RATE_LIMIT_TRIES times,
+    # so running several calls at once (pilot --workers N) does not turn a busy moment into
+    # failed alerts. Any other status, or a network error, behaves as before.
+    for attempt in range(1, RATE_LIMIT_TRIES + 1):
+        try:
+            resp = requests.post(
+                ANTHROPIC_API_URL,
+                headers={"x-api-key": api_key, "anthropic-version": ANTHROPIC_VERSION,
+                         "content-type": "application/json"},
+                json=body, timeout=120,
+            )
+        except requests.RequestException as e:
+            raise BackendError(f"Anthropic request failed after {int(time.time() - t0)}s: {e.__class__.__name__}") from e
+        if resp.status_code not in RETRY_STATUS or attempt == RATE_LIMIT_TRIES:
+            break
+        try:
+            wait = float(resp.headers.get("retry-after", ""))
+        except ValueError:
+            wait = 2.0 ** attempt
+        time.sleep(min(max(wait, 1.0), 60.0))
     if resp.status_code != 200:
         raise BackendError(f"Anthropic API returned {resp.status_code}: {resp.text[:500]}")
     data = resp.json()
