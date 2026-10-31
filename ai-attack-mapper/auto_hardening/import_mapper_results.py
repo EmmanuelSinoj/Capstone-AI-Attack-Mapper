@@ -3,10 +3,12 @@
 
   python import_mapper_results.py --src mapper_results_<run>.db --db alerts.db --expect-run garak_20261027_v6-2            # dry run
   python import_mapper_results.py --src ... --db ... --expect-run garak_20261027_v6-2 --apply                              # writes
+  --expect-run takes one or more run ids (garak_X pyrit_X benign_X); --expect-round <token> (e.g. 20261027_v6-2) allows every run
+  of that round: run ids garak_<token>, pyrit_<token>, benign_<token>. Give one or both; an alert is accepted if its run_id matches either.
 
 What it does (and nothing else):
   * reads the Mapper results database READ-ONLY (table mapper_results);
-  * checks that every alert_id exists in --db and belongs to --expect-run (so rows cannot land on the wrong alerts),
+  * checks that every alert_id exists in --db and that its run_id is one of the allowed runs (so rows cannot land on the wrong alerts),
     that all rows are one run_id, and that every source column exists in the destination;
   * with --apply: first makes a SQLite backup of --db next to it (alerts.db.bak-pre-mapper-import-<run>), then inserts the rows
     WITHOUT the source id column (the destination assigns its own), INSERT OR IGNORE on (alert_id, run_id, repeat_no),
@@ -20,9 +22,17 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--src", required=True, help="Mapper results .db (table mapper_results)")
     ap.add_argument("--db", required=True, help="the alerts.db to import into")
-    ap.add_argument("--expect-run", required=True, help="run_id of the alerts the Mapper classified, e.g. garak_20261027_v6-2")
+    ap.add_argument("--expect-run", nargs="+", default=[], metavar="RUN_ID",
+                    help="one or more run_ids the classified alerts may belong to, e.g. garak_20261027_v6-2 pyrit_20261027_v6-2")
+    ap.add_argument("--expect-round", metavar="TOKEN",
+                    help="round token, e.g. 20261027_v6-2: allows run ids garak_<TOKEN>, pyrit_<TOKEN> and benign_<TOKEN>")
     ap.add_argument("--apply", action="store_true", help="write (default: dry run)")
     a = ap.parse_args()
+    allowed = set(a.expect_run)
+    if a.expect_round:
+        allowed |= {f"{pre}_{a.expect_round}" for pre in ("garak", "pyrit", "benign")}
+    if not allowed:
+        sys.exit("give --expect-run RUN_ID [RUN_ID ...] and/or --expect-round TOKEN")
 
     src = sqlite3.connect(f"file:{pathlib.Path(a.src).resolve().as_posix()}?mode=ro", uri=True)
     src.row_factory = sqlite3.Row
@@ -47,12 +57,16 @@ def main():
     have = {r[0]: r[1] for r in dst.execute(
         f"SELECT id, run_id FROM alerts WHERE id IN ({','.join('?' * len(ids))})", ids)}
     absent = [i for i in ids if i not in have]
-    wrong = [i for i in ids if i in have and have[i] != a.expect_run]
+    wrong = [i for i in ids if i in have and have[i] not in allowed]
     if absent or wrong:
         sys.exit(f"REFUSED: {len(absent)} alert_ids not in the destination, {len(wrong)} belong to another run_id "
-                 f"(expected {a.expect_run}). Examples: {absent[:5]} {wrong[:5]}")
+                 f"(allowed: {', '.join(sorted(allowed))}). Examples: {absent[:5]} {[(i, have[i]) for i in wrong[:5]]}")
     before = dst.execute("SELECT COUNT(*) FROM mapper_results WHERE run_id = ?", (run,)).fetchone()[0]
-    print(f"destination: all {len(ids)} alert_ids exist and belong to {a.expect_run}; mapper_results rows for this run before: {before}")
+    by_run = {}
+    for i in ids:
+        by_run[have[i]] = by_run.get(have[i], 0) + 1
+    print(f"destination: all {len(ids)} alert_ids exist; alerts per run_id: {by_run} (allowed: {', '.join(sorted(allowed))}); "
+          f"mapper_results rows for this run before: {before}")
     if not a.apply:
         print("dry run: nothing written. Re-run with --apply.")
         return
