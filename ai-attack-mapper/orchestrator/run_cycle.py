@@ -36,7 +36,8 @@ Rules built in (Aneeq's review, Oct 31):
   * --skip-families comes from config.json; --target-families comes from harden.py's own history entry
   * seeds are recorded in orchestrator/seeds_used.json and never reused by another cycle
   * an interrupted or failed round is marked INVALID in rounds.json and the step starts a new round on resume
-  * approve refuses anything but ACCEPT unless --override-reason is given (logged); live_results.py never gets --allow-ungraded
+  * approve refuses anything but ACCEPT; a REJECT can be overridden only with --override-reason (logged), an INCONCLUSIVE
+    never; live_results.py never gets --allow-ungraded
 Stdlib only."""
 import argparse, datetime, difflib, getpass, json, os, pathlib, re, shutil, sqlite3, subprocess, sys, time, urllib.request
 
@@ -355,7 +356,7 @@ def step_import(cy):
         cy.step("import")["note"] = "skipped: no Mapper run"
         return
     run_id = cy.val("mapper_run")
-    made = cy.team_command("import", {"mapper_run": run_id})
+    made = cy.team_command("import", {"mapper_run": run_id, "round": cy.val("round_attack")})
     if made is None and cy.dry:
         print("(config.json commands.import is not set: a real run stops here until it is)")
         return
@@ -478,9 +479,10 @@ def step_utility(cy):
 def seen_files(cy):
     """Prompts that count as seen: the replay sets, plus the eligible prompts of EVERY cycle so far (the clauses were written
     from them). live_results.py only knows the replay sets, so without this the 'fresh' set overlaps the training attacks."""
-    files = [ROOT / p for p in cy.cfg.get("seen_sets", [])] + [ROOT / p for p in cy.cfg.get("extra_seen", [])]
+    files = [ROOT / p for p in cy.cfg.get("seen_sets", [])] + [ROOT / p for p in cy.cfg.get("extra_seen", []) if not p.endswith(".jsonl")]
     texts = set()
-    for el in sorted(CYCLES.glob("*/eligible.jsonl")):
+    extra_jsonl = [ROOT / p for p in cy.cfg.get("extra_seen", []) if p.endswith(".jsonl")]   # gate.py --out files from manual runs
+    for el in extra_jsonl + sorted(CYCLES.glob("*/eligible.jsonl")):
         for line in el.read_text(encoding="utf-8").splitlines():
             if line.strip():
                 texts.add(json.loads(line)["prompt"].strip())
@@ -764,10 +766,14 @@ def cmd_approve(a, cfg):
         sys.exit(f"v{v['candidate']} is already active from this cycle (use rollback to undo)")
     verdict, cand = v["verdict"], v["candidate"]
     print(f"cycle {cy.name}: candidate v{cand} vs base v{s['base']}, VERDICT {verdict}")
+    if verdict == "INCONCLUSIVE":   # evidence missing (failed requests, too few attacks): re-run the check, never override
+        sys.exit("refused: the verdict is INCONCLUSIVE, which means a check could not be run or was too small. "
+                 "It cannot be activated, not even with an override. Fix the cause and re-run (resume --cycle ... --only decide, "
+                 "or new verification rounds).")
     if verdict != "ACCEPT":
         if not a.override_reason:
             sys.exit(f"refused: the verdict is {verdict}, only ACCEPT can be activated. "
-                     "To activate anyway, give --override-reason \"...\" (it is logged in approval.json and summary.md).")
+                     "To activate a REJECT anyway, give --override-reason \"...\" (it is logged in approval.json and summary.md).")
         print(f"OVERRIDE: activating despite {verdict}. Reason: {a.override_reason}")
     print("\n--- prompt change ---")
     print(cy.f("prompt_diff.txt").read_text(encoding="utf-8") if cy.f("prompt_diff.txt").exists() else "(no diff file)")

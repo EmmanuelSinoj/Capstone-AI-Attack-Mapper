@@ -33,7 +33,7 @@ The snapshot uses the SQLite backup API. With `--attack-round` no new round is r
 
 ## Rules
 
-- Only `approve` activates a version; it shows the diff and asks you to type the version number. Verdicts other than ACCEPT need `--override-reason`, which is logged.
+- Only `approve` activates a version; it shows the diff and asks you to type the version number. A REJECT can be activated only with `--override-reason` (logged); an INCONCLUSIVE never (re-run the check instead).
 - `hardening_applied` is set only for that cycle's eligible alerts, only after activation succeeded; `rollback` re-activates the base and clears it.
 - All alert-store writes (annotate, Mapper import, hardening_applied) run inside the testbed container. Backups go to `alert_store/backups/` before the import and before approve.
 - Seeds are recorded in `seeds_used.json` and cannot be reused by another cycle. Both verification rounds use the same seed and the same flags.

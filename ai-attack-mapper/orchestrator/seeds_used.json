@@ -1,0 +1,12 @@
+{
+  "42": {
+    "cycle": "manual v6 test (before the orchestrator)",
+    "role": "attack",
+    "at": "2026-10-27"
+  },
+  "43": {
+    "cycle": "manual v6 test (before the orchestrator)",
+    "role": "verify",
+    "at": "2026-10-29"
+  }
+}
