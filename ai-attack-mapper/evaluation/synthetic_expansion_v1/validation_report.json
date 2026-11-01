@@ -1,0 +1,28 @@
+{
+  "validation_date": "2026-11-01",
+  "automated_tests_passed": 8,
+  "automated_tests_total": 8,
+  "test_command": "python synthetic_alerts/expansion_v1/test_expansion.py",
+  "additional_rows": 960,
+  "combined_rows": 1000,
+  "exact_duplicate_input_output_pairs": 0,
+  "unique_source_references": 960,
+  "all_draft_framework_ids_in_project_catalogue": true,
+  "mean_words_input_plus_output": 133.7,
+  "minimum_words_input_plus_output": 123,
+  "source_registry_checks": "40 official cases read from pinned MITRE ATLAS release; four primary reports/paper read directly",
+  "schema_loader_test": "40 originals + 960 additions = 1000; second addition load inserts 0 and skips 960",
+  "original_set_integrity": "No original repository files included in the change set",
+  "new_labels_human_reviewed": 0,
+  "label_validation_accuracy": null,
+  "classifier_runs_performed": 0,
+  "paid_api_calls": 0,
+  "known_limitations": [
+    "Template-derived scenarios are related within family and source group.",
+    "No near-duplicate independence claim; exact uniqueness does not establish semantic independence.",
+    "All new outcome evidence is hypothetical and cannot score live defensive effectiveness.",
+    "Cross-framework label relevance requires independent review.",
+    "Twenty source groups are new relative to the original set; the others overlap.",
+    "Generation is deliberately balanced and cannot estimate real-world category prevalence."
+  ]
+}
