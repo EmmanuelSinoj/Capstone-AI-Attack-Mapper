@@ -1,0 +1,965 @@
+[
+  {
+    "id": "A01",
+    "source": "AML.CS0033",
+    "category": "A",
+    "sub": "AI-assisted fraud & deepfakes",
+    "phase": "Exploitation & Installation",
+    "atlas": "AML.T0088",
+    "support": [
+      "AML.T0015"
+    ],
+    "attack": [
+      "T1684.001"
+    ],
+    "owasp": [],
+    "mechanism": "An operator substitutes face-swapped video for a live camera feed during an identity check. The generated face is used to impersonate an applicant and bypass biometric verification rather than to change the recognition model.",
+    "effect": "the substituted feed is accepted as a live applicant",
+    "block": "the substituted feed is rejected before an account is authorized"
+  },
+  {
+    "id": "A02",
+    "source": "AML.CS0034",
+    "category": "A",
+    "sub": "AI-assisted fraud & deepfakes",
+    "phase": "Delivery",
+    "atlas": "AML.T0088",
+    "support": [
+      "AML.T0021"
+    ],
+    "attack": [
+      "T1585",
+      "T1684.001"
+    ],
+    "owasp": [],
+    "mechanism": "An operator prepares a fabricated identity document and a matching generated selfie video for an account-onboarding workflow. Both artifacts describe the same invented applicant, making the identity appear internally consistent.",
+    "effect": "the fabricated identity receives an authenticated account",
+    "block": "the submitted identity is rejected before account creation"
+  },
+  {
+    "id": "A03",
+    "source": "AML.CS0042",
+    "category": "A",
+    "sub": "AI-assisted command & control",
+    "phase": "Command & Control",
+    "atlas": "AML.T0096",
+    "support": [],
+    "attack": [
+      "T1102",
+      "T1071.001"
+    ],
+    "owasp": [],
+    "mechanism": "An implant on an already compromised endpoint retrieves operator instructions through an AI service API. The implant, rather than an autonomous model, executes those instructions and returns results through the same service.",
+    "effect": "a test instruction is executed and its result reaches the operator",
+    "block": "the service relay is interrupted before a new instruction executes"
+  },
+  {
+    "id": "A04",
+    "source": "AML.CS0044",
+    "category": "A",
+    "sub": "AI-assisted malware",
+    "phase": "Exploitation & Installation",
+    "atlas": "AML.T0102",
+    "support": [
+      "AML.T0037"
+    ],
+    "attack": [
+      "T1059",
+      "T1005"
+    ],
+    "owasp": [],
+    "mechanism": "A malicious executable asks a language-model endpoint to translate collection objectives into shell commands. The executable runs the returned commands on the host; the model does not independently select targets or orchestrate a campaign.",
+    "effect": "the generated commands collect the designated test files",
+    "block": "the generated commands are prevented from collecting files"
+  },
+  {
+    "id": "A05",
+    "source": "AML.CS0061",
+    "category": "A",
+    "sub": "AI-assisted command & control",
+    "phase": "Command & Control",
+    "atlas": "AML.T0114",
+    "support": [
+      "AML.T0047"
+    ],
+    "attack": [
+      "T1102",
+      "T1071.001"
+    ],
+    "owasp": [],
+    "mechanism": "A malware process uses a public AI web interface as a message relay. It asks the service to retrieve an operator-controlled URL and parses the returned text as instructions, concealing its relay inside ordinary service traffic.",
+    "effect": "the relay delivers a new operator instruction to the implant",
+    "block": "the relay is denied and no new instruction is delivered"
+  },
+  {
+    "id": "A06",
+    "source": "FBI-2025-0515",
+    "category": "A",
+    "sub": "AI-assisted fraud & deepfakes",
+    "phase": "Delivery",
+    "atlas": "AML.T0088",
+    "support": [
+      "AML.T0073"
+    ],
+    "attack": [
+      "T1684.001",
+      "T1566"
+    ],
+    "owasp": [],
+    "mechanism": "An impersonator sends a generated voice message claiming to be a trusted official. The message tries to move the recipient to another communication channel where an account-access lure can be delivered.",
+    "effect": "the recipient follows the impersonator to the requested channel",
+    "block": "the recipient verifies the identity independently and stops the exchange"
+  },
+  {
+    "id": "A07",
+    "source": "MS-2025-0924",
+    "category": "A",
+    "sub": "AI-assisted phishing",
+    "phase": "Delivery",
+    "atlas": "AML.T0052",
+    "support": [
+      "AML.T0123"
+    ],
+    "attack": [
+      "T1566.001",
+      "T1027"
+    ],
+    "owasp": [],
+    "mechanism": "A file-sharing email carries an SVG attachment disguised as a document. Its redirect logic is obscured by business-themed identifiers and hidden elements; the assessment records suspected model assistance rather than proven AI authorship.",
+    "effect": "opening the attachment reaches the credential-lure landing page",
+    "block": "the attachment is quarantined before the landing page opens"
+  },
+  {
+    "id": "A08",
+    "source": "OPENAI-SCOPECREEP",
+    "category": "A",
+    "sub": "AI-assisted malware",
+    "phase": "Weaponization",
+    "atlas": "AML.T0017",
+    "support": [],
+    "attack": [
+      "T1587.001"
+    ],
+    "owasp": [],
+    "mechanism": "An operator uses a conversational model to debug and refine a malicious loader for conventional endpoints. The operator chooses the requested features and integrates the generated code; the model is a development aid rather than an autonomous attacker.",
+    "effect": "the revised loader passes the operator's controlled feature test",
+    "block": "the requested loader feature fails its controlled test"
+  },
+  {
+    "id": "A09",
+    "source": "AML.CS0044",
+    "category": "A",
+    "sub": "AI-assisted malware",
+    "phase": "Actions on Objectives",
+    "atlas": "AML.T0102",
+    "support": [
+      "AML.T0025"
+    ],
+    "attack": [
+      "T1059",
+      "T1041"
+    ],
+    "owasp": [],
+    "mechanism": "After initial compromise, a malware process requests model-generated commands to locate and stage host files. It then forwards staged material to an operator destination using its own network routine rather than model-driven tool planning.",
+    "effect": "a harmless canary file reaches the controlled receiver",
+    "block": "the canary file remains on the host and the outbound transfer is denied"
+  },
+  {
+    "id": "A10",
+    "source": "AML.CS0042",
+    "category": "A",
+    "sub": "AI-assisted command & control",
+    "phase": "Command & Control",
+    "atlas": "AML.T0096",
+    "support": [],
+    "attack": [
+      "T1102",
+      "T1573"
+    ],
+    "owasp": [],
+    "mechanism": "An implant packages encrypted command results as messages handled by an AI service API. The operator reads the messages as a return channel; no evidence shows the assistant independently deciding which action the implant should perform.",
+    "effect": "the encrypted response is recovered by the controlled operator",
+    "block": "the response message is blocked before the operator retrieves it"
+  },
+  {
+    "id": "A11",
+    "source": "MS-2025-0924",
+    "category": "A",
+    "sub": "AI-assisted phishing",
+    "phase": "Exploitation & Installation",
+    "atlas": "AML.T0052",
+    "support": [
+      "AML.T0123"
+    ],
+    "attack": [
+      "T1566.001",
+      "T1204.002"
+    ],
+    "owasp": [],
+    "mechanism": "A recipient opens a document-looking SVG that reconstructs redirect behavior from business-language tokens. The simulated investigation treats the model-assisted origin as suspected and examines the user-facing redirect rather than claiming a confirmed credential theft.",
+    "effect": "the redirect and browser-fingerprinting stage execute in the test browser",
+    "block": "the test browser prevents the SVG redirect from executing"
+  },
+  {
+    "id": "A12",
+    "source": "OPENAI-SCOPECREEP",
+    "category": "A",
+    "sub": "AI-assisted malware",
+    "phase": "Weaponization",
+    "atlas": "AML.T0017",
+    "support": [
+      "AML.T0123"
+    ],
+    "attack": [
+      "T1587.001",
+      "T1027"
+    ],
+    "owasp": [],
+    "mechanism": "An operator requests incremental code changes that disguise a conventional malware component and improve its execution reliability. The operator reviews each response and incorporates it into the existing code rather than delegating a multi-step attack to an agent.",
+    "effect": "the modified component demonstrates the requested behavior in a sandbox",
+    "block": "the modified component cannot perform the requested behavior in the sandbox"
+  },
+  {
+    "id": "B01",
+    "source": "AML.CS0000",
+    "category": "B",
+    "sub": "Extraction, inversion & adversarial",
+    "phase": "Exploitation & Installation",
+    "atlas": "AML.T0015",
+    "support": [
+      "AML.T0043.003"
+    ],
+    "attack": [],
+    "owasp": [],
+    "mechanism": "A researcher alters observable HTTP features in a malicious traffic sample while retaining its command-channel behavior. Queries to a proxy classifier guide the modifications toward a benign prediction by the traffic-detection model.",
+    "effect": "the modified sample retains the test behavior and receives a benign prediction",
+    "block": "the modified sample remains identified as malicious"
+  },
+  {
+    "id": "B02",
+    "source": "AML.CS0056",
+    "category": "B",
+    "sub": "Extraction, inversion & adversarial",
+    "phase": "Actions on Objectives",
+    "atlas": "AML.T0024.002",
+    "support": [
+      "AML.T0040"
+    ],
+    "attack": [],
+    "owasp": [],
+    "mechanism": "An operator repeatedly queries a hosted language model and collects its responses for a substitute model. The activity is directed at reproducing the provider's capability rather than obtaining answers for ordinary end-user tasks.",
+    "effect": "the collected response set is used in a substitute-model experiment",
+    "block": "query access is suspended before a usable response set is collected"
+  },
+  {
+    "id": "B03",
+    "source": "AML.CS0013",
+    "category": "B",
+    "sub": "Poisoning & backdoor",
+    "phase": "Exploitation & Installation",
+    "atlas": "AML.T0018.001",
+    "support": [
+      "AML.T0043.004"
+    ],
+    "attack": [],
+    "owasp": [],
+    "mechanism": "A researcher with access to a mobile application's model modifies its neural architecture to insert a trigger-dependent behavior. Ordinary inputs remain functional, while a selected visual trigger is intended to alter recognition.",
+    "effect": "the visual trigger changes recognition while ordinary checks still pass",
+    "block": "the altered model is rejected before trigger-dependent behavior can be used"
+  },
+  {
+    "id": "B04",
+    "source": "AML.CS0019",
+    "category": "B",
+    "sub": "AI supply chain",
+    "phase": "Delivery",
+    "atlas": "AML.T0010.003",
+    "support": [
+      "AML.T0018.000",
+      "AML.T0115.001"
+    ],
+    "attack": [
+      "T1195"
+    ],
+    "owasp": [
+      "LLM04",
+      "LLM05"
+    ],
+    "mechanism": "A model artifact is edited to return a selected false fact and is published under a name resembling a trusted model repository. A downstream user follows the repository reference and loads the altered artifact.",
+    "effect": "the downloaded artifact returns the inserted false fact",
+    "block": "artifact verification prevents the altered model from loading"
+  },
+  {
+    "id": "B05",
+    "source": "AML.CS0022",
+    "category": "B",
+    "sub": "AI supply chain",
+    "phase": "Delivery",
+    "atlas": "AML.T0010.001",
+    "support": [
+      "AML.T0060",
+      "AML.T0011.001"
+    ],
+    "attack": [
+      "T1195.001"
+    ],
+    "owasp": [
+      "LLM04"
+    ],
+    "mechanism": "A language model suggests a nonexistent software dependency. An attacker registers that package name and supplies malicious installation behavior, relying on later users accepting the repeated recommendation and installing from the package registry.",
+    "effect": "installation of the recommended package invokes the inserted behavior",
+    "block": "dependency verification prevents installation of the impersonating package"
+  },
+  {
+    "id": "B06",
+    "source": "AML.CS0025",
+    "category": "B",
+    "sub": "Poisoning & backdoor",
+    "phase": "Weaponization",
+    "atlas": "AML.T0020",
+    "support": [
+      "AML.T0059"
+    ],
+    "attack": [
+      "T1565.001"
+    ],
+    "owasp": [],
+    "mechanism": "A training dataset is distributed as URLs. An operator gains control of a previously referenced domain and replaces material returned when the training pipeline later fetches those URLs, after the original dataset review has already occurred.",
+    "effect": "the changed material enters the training snapshot",
+    "block": "content-integrity checks exclude the changed material from training"
+  },
+  {
+    "id": "B07",
+    "source": "AML.CS0027",
+    "category": "B",
+    "sub": "AI supply chain",
+    "phase": "Delivery",
+    "atlas": "AML.T0010.003",
+    "support": [
+      "AML.T0073",
+      "AML.T0018.002"
+    ],
+    "attack": [
+      "T1195",
+      "T1036"
+    ],
+    "owasp": [
+      "LLM04"
+    ],
+    "mechanism": "An attacker-controlled model-hub organization impersonates a legitimate team. An employee mistakes it for the official workspace, and an attacker-modified model artifact is offered through that apparently trusted distribution channel.",
+    "effect": "the impersonating workspace supplies the model loaded by the victim",
+    "block": "organization verification prevents use of the impersonating workspace"
+  },
+  {
+    "id": "B08",
+    "source": "AML.CS0028",
+    "category": "B",
+    "sub": "AI supply chain",
+    "phase": "Delivery",
+    "atlas": "AML.T0010.004",
+    "support": [
+      "AML.T0018.000"
+    ],
+    "attack": [
+      "T1195"
+    ],
+    "owasp": [
+      "LLM04"
+    ],
+    "mechanism": "An exposed container registry permits an unauthorized actor to change an image containing a model. A deployment pipeline pulls the altered image under its usual reference, making the registry the path by which the model modification reaches the application.",
+    "effect": "the deployment consumes the altered model image",
+    "block": "image-signature verification prevents deployment of the altered image"
+  },
+  {
+    "id": "B09",
+    "source": "AML.CS0058",
+    "category": "B",
+    "sub": "Extraction, inversion & adversarial",
+    "phase": "Actions on Objectives",
+    "atlas": "AML.T0035",
+    "support": [
+      "AML.T0044"
+    ],
+    "attack": [],
+    "owasp": [],
+    "mechanism": "A researcher inspects an application that bundles proprietary inference models. Static inspection locates model assets, and runtime instrumentation captures an encrypted asset after application-side decryption, exposing the model independently of its intended interface.",
+    "effect": "the recovered model artifact can be opened outside the application",
+    "block": "the extraction attempt does not recover a usable model artifact"
+  },
+  {
+    "id": "B10",
+    "source": "AML.CS0064",
+    "category": "B",
+    "sub": "AI supply chain",
+    "phase": "Exploitation & Installation",
+    "atlas": "AML.T0010.003",
+    "support": [
+      "AML.T0018.003",
+      "AML.T0051.002"
+    ],
+    "attack": [
+      "T1195"
+    ],
+    "owasp": [
+      "LLM04",
+      "LLM01"
+    ],
+    "mechanism": "A redistributed quantized model includes an altered chat template while its weights remain unchanged. The inference engine trusts the bundled template, which inserts an attacker instruction only when a selected contextual trigger occurs.",
+    "effect": "the triggered template changes the generated response",
+    "block": "template-integrity verification prevents the injected instruction from entering context"
+  },
+  {
+    "id": "B11",
+    "source": "AML.CS0065",
+    "category": "B",
+    "sub": "AI supply chain",
+    "phase": "Delivery",
+    "atlas": "AML.T0010.003",
+    "support": [
+      "AML.T0018.002",
+      "AML.T0115.001"
+    ],
+    "attack": [
+      "T1195"
+    ],
+    "owasp": [
+      "LLM04"
+    ],
+    "mechanism": "A deleted model-author namespace is reclaimed by another operator. A downstream application retains an unpinned historical model path and resolves it to the newly supplied artifact rather than to the previously trusted model.",
+    "effect": "the stale reference loads the replacement artifact and its test payload",
+    "block": "a pinned artifact revision prevents resolution to the replacement"
+  },
+  {
+    "id": "B12",
+    "source": "PAPER-GCG-2023",
+    "category": "B",
+    "sub": "Prompt injection & jailbreaking",
+    "phase": "Exploitation & Installation",
+    "atlas": "AML.T0054",
+    "support": [
+      "AML.T0065"
+    ],
+    "attack": [],
+    "owasp": [
+      "LLM01"
+    ],
+    "mechanism": "A red-team operator appends an optimized adversarial suffix to a prohibited request sent directly to an aligned language model. The suffix was selected through automated search to induce an affirmative response; no application tools or retrieved documents participate.",
+    "effect": "the model supplies the prohibited completion instead of refusing",
+    "block": "the model refuses the prohibited completion despite the suffix"
+  },
+  {
+    "id": "C01",
+    "source": "AML.CS0016",
+    "category": "C",
+    "sub": "Plugin RCE & insecure output handling",
+    "phase": "Exploitation & Installation",
+    "atlas": "AML.T0051.000",
+    "support": [
+      "AML.T0055"
+    ],
+    "attack": [
+      "T1059.006"
+    ],
+    "owasp": [
+      "LLM01",
+      "LLM10"
+    ],
+    "mechanism": "A math application converts user questions into Python and executes the generated code through a fixed application function. A crafted question redirects the generated code toward reading process environment data; there is no autonomous tool-planning loop.",
+    "effect": "the executed code returns a canary environment value",
+    "block": "the application rejects the generated code before the canary can be read"
+  },
+  {
+    "id": "C02",
+    "source": "AML.CS0021",
+    "category": "C",
+    "sub": "Conversation & hidden-context compromise",
+    "phase": "Actions on Objectives",
+    "atlas": "AML.T0077",
+    "support": [
+      "AML.T0051.001"
+    ],
+    "attack": [
+      "T1041"
+    ],
+    "owasp": [
+      "LLM01",
+      "LLM02",
+      "LLM10"
+    ],
+    "mechanism": "A chat application incorporates an external webpage into a response. Embedded instructions cause the response to contain an image URL carrying conversation content, and the application's renderer makes the outbound request without an autonomous agent tool decision.",
+    "effect": "a canary conversation fragment reaches the controlled image receiver",
+    "block": "the renderer suppresses the outbound image request"
+  },
+  {
+    "id": "C03",
+    "source": "AML.CS0026",
+    "category": "C",
+    "sub": "RAG poisoning & data extraction",
+    "phase": "Actions on Objectives",
+    "atlas": "AML.T0070",
+    "support": [
+      "AML.T0067.000",
+      "AML.T0071"
+    ],
+    "attack": [
+      "T1565.001"
+    ],
+    "owasp": [
+      "LLM01",
+      "LLM09",
+      "LLM07"
+    ],
+    "mechanism": "A received message is indexed for later retrieval by a workplace assistant. It supplies substituted payment details and asks the assistant to present that message as an authoritative citation; a human, not an agent, would initiate any payment.",
+    "effect": "the answer presents the substituted payment details with a misleading citation",
+    "block": "the answer rejects the substituted details and preserves the legitimate source"
+  },
+  {
+    "id": "C04",
+    "source": "AML.CS0029",
+    "category": "C",
+    "sub": "Conversation & hidden-context compromise",
+    "phase": "Actions on Objectives",
+    "atlas": "AML.T0077",
+    "support": [
+      "AML.T0051.001"
+    ],
+    "attack": [
+      "T1041"
+    ],
+    "owasp": [
+      "LLM01",
+      "LLM02",
+      "LLM10"
+    ],
+    "mechanism": "An assistant reads a shared document containing attacker-authored instructions. The resulting answer includes an image reference whose URL encodes earlier conversation text, and automatic browser rendering sends it to a script endpoint.",
+    "effect": "the script endpoint receives the canary conversation text",
+    "block": "the browser prevents the document-induced image fetch"
+  },
+  {
+    "id": "C05",
+    "source": "AML.CS0030",
+    "category": "C",
+    "sub": "LLM service abuse & cost",
+    "phase": "Actions on Objectives",
+    "atlas": "AML.T0012",
+    "support": [
+      "AML.T0055"
+    ],
+    "attack": [
+      "T1078",
+      "T1496"
+    ],
+    "owasp": [
+      "LLM06"
+    ],
+    "mechanism": "An operator obtains a cloud credential exposed by another application and uses it to invoke the victim's hosted language-model service. The requests consume the victim account's quota and billing allocation rather than altering the underlying model.",
+    "effect": "unauthorized requests are charged to the victim account",
+    "block": "the credential is revoked before an unauthorized request is billed"
+  },
+  {
+    "id": "C06",
+    "source": "AML.CS0035",
+    "category": "C",
+    "sub": "RAG poisoning & data extraction",
+    "phase": "Actions on Objectives",
+    "atlas": "AML.T0070",
+    "support": [
+      "AML.T0082",
+      "AML.T0051.001"
+    ],
+    "attack": [
+      "T1041"
+    ],
+    "owasp": [
+      "LLM01",
+      "LLM02",
+      "LLM09"
+    ],
+    "mechanism": "A malicious workspace message is retrieved alongside private content by a search assistant. It directs the assistant to include the private content in an outbound link displayed in the answer, exploiting the retrieval and rendering workflow.",
+    "effect": "the rendered link transfers a canary secret to the controlled receiver",
+    "block": "the application prevents the secret-bearing link from being requested"
+  },
+  {
+    "id": "C07",
+    "source": "AML.CS0036",
+    "category": "C",
+    "sub": "Conversation & hidden-context compromise",
+    "phase": "Actions on Objectives",
+    "atlas": "AML.T0091.000",
+    "support": [
+      "AML.T0012",
+      "AML.T0092"
+    ],
+    "attack": [
+      "T1528",
+      "T1550.001"
+    ],
+    "owasp": [
+      "LLM02"
+    ],
+    "mechanism": "An attacker with local access extracts a desktop assistant's session token from process memory. The token is replayed to the backend to read or alter the victim's chat history; this scenario contains no autonomous agent tool execution.",
+    "effect": "the replayed token exposes a canary conversation",
+    "block": "session validation denies the replayed token before any conversation is returned"
+  },
+  {
+    "id": "C08",
+    "source": "AML.CS0043",
+    "category": "C",
+    "sub": "Prompt injection against LLM security tools",
+    "phase": "Exploitation & Installation",
+    "atlas": "AML.T0051.000",
+    "support": [
+      "AML.T0015"
+    ],
+    "attack": [
+      "T1685.007"
+    ],
+    "owasp": [
+      "LLM01"
+    ],
+    "mechanism": "A submitted program contains a comment telling a model-based malware analyst to disregard the code and return a clean verdict. The intended victim is the security-analysis application, and the embedded instruction is part of the untrusted sample.",
+    "effect": "the analysis application returns a clean verdict for the malicious test sample",
+    "block": "the analysis application ignores the embedded instruction and reports the malicious behavior"
+  },
+  {
+    "id": "C09",
+    "source": "AML.CS0057",
+    "category": "C",
+    "sub": "LLM service abuse & cost",
+    "phase": "Exploitation & Installation",
+    "atlas": "AML.T0054",
+    "support": [
+      "AML.T0012"
+    ],
+    "attack": [
+      "T1078"
+    ],
+    "owasp": [
+      "LLM01",
+      "LLM06"
+    ],
+    "mechanism": "An operator uses compromised access to a hosted generative service and routes requests through tooling intended to circumvent its content safeguards. The abused service account and its application controls are the target, with no autonomous agent actions.",
+    "effect": "the abused service account returns the restricted test content",
+    "block": "service controls refuse the restricted request and suspend the abused access"
+  },
+  {
+    "id": "C10",
+    "source": "AML.CS0059",
+    "category": "C",
+    "sub": "RAG poisoning & data extraction",
+    "phase": "Actions on Objectives",
+    "atlas": "AML.T0070",
+    "support": [
+      "AML.T0077",
+      "AML.T0085.000"
+    ],
+    "attack": [
+      "T1041"
+    ],
+    "owasp": [
+      "LLM01",
+      "LLM02",
+      "LLM09"
+    ],
+    "mechanism": "A workplace assistant retrieves an attacker-sent email while answering an ordinary enterprise query. Crafted text promotes the email into trusted response instructions and causes internal context to be included in an automatically fetched URL.",
+    "effect": "a canary item from internal context reaches the external receiver",
+    "block": "the application blocks the URL fetch before the context leaves"
+  },
+  {
+    "id": "C11",
+    "source": "AML.CS0060",
+    "category": "C",
+    "sub": "Plugin RCE & insecure output handling",
+    "phase": "Exploitation & Installation",
+    "atlas": "AML.T0077",
+    "support": [
+      "AML.T0051.000",
+      "AML.T0113"
+    ],
+    "attack": [
+      "T1059.007",
+      "T1539"
+    ],
+    "owasp": [
+      "LLM01",
+      "LLM10"
+    ],
+    "mechanism": "A chatbot user manipulates the response into containing active browser content. The surrounding web interface renders the response without adequate sanitization, allowing a script to access a test session value.",
+    "effect": "the rendered script exposes the test session value",
+    "block": "output sanitization prevents execution of the script"
+  },
+  {
+    "id": "C12",
+    "source": "AML.CS0072",
+    "category": "C",
+    "sub": "Prompt & memory manipulation",
+    "phase": "Exploitation & Installation",
+    "atlas": "AML.T0131",
+    "support": [
+      "AML.T0130"
+    ],
+    "attack": [],
+    "owasp": [
+      "LLM01",
+      "LLM07"
+    ],
+    "mechanism": "A promotional summarization link pre-fills an assistant's first user message with instructions to favor the promoter's domain in later recommendations. This scenario concerns answer preference in a conversational application, not a tool-using agent or a modified training dataset.",
+    "effect": "a later recommendation favors the promoter's domain",
+    "block": "the assistant summarizes the page without accepting the promotional preference"
+  },
+  {
+    "id": "D01",
+    "source": "AML.CS0038",
+    "category": "D",
+    "sub": "Agent tool & API misuse",
+    "phase": "Exploitation & Installation",
+    "atlas": "AML.T0053",
+    "support": [
+      "AML.T0094",
+      "AML.T0051.001"
+    ],
+    "attack": [],
+    "owasp": [
+      "LLM01",
+      "LLM03"
+    ],
+    "mechanism": "An agent receives external content containing a delayed instruction. The content asks it to wait until a subsequent conversational turn before invoking a connected tool, bypassing a control tied only to the turn when untrusted material first entered context.",
+    "effect": "the agent invokes the unauthorized tool on the later turn",
+    "block": "the agent refuses the delayed tool action on the later turn"
+  },
+  {
+    "id": "D02",
+    "source": "AML.CS0039",
+    "category": "D",
+    "sub": "Agent tool & API misuse",
+    "phase": "Actions on Objectives",
+    "atlas": "AML.T0086",
+    "support": [
+      "AML.T0053",
+      "AML.T0051.001"
+    ],
+    "attack": [
+      "T1041"
+    ],
+    "owasp": [
+      "LLM01",
+      "LLM03"
+    ],
+    "mechanism": "An external support ticket carries instructions addressed to an internal service agent. When the agent processes the ticket using its privileged business connections, the instructions attempt to make it retrieve protected information and send it outside the authorized workflow.",
+    "effect": "the agent's tool call sends a canary record to the receiver",
+    "block": "the agent refuses the unauthorized retrieval or outbound tool call"
+  },
+  {
+    "id": "D03",
+    "source": "AML.CS0040",
+    "category": "D",
+    "sub": "Agent tool & API misuse",
+    "phase": "Exploitation & Installation",
+    "atlas": "AML.T0080.000",
+    "support": [
+      "AML.T0051.001"
+    ],
+    "attack": [
+      "T1565.001"
+    ],
+    "owasp": [
+      "LLM01",
+      "LLM03"
+    ],
+    "mechanism": "A stateful assistant with persistent memory reads a shared document containing instructions to save false facts. The requested memory write is intended to influence later sessions after the attacker-controlled document has left the immediate context.",
+    "effect": "the false fact remains in persistent memory during a later session",
+    "block": "the memory write is rejected and the later session contains no inserted fact"
+  },
+  {
+    "id": "D04",
+    "source": "AML.CS0054",
+    "category": "D",
+    "sub": "Agent tool & API misuse",
+    "phase": "Actions on Objectives",
+    "atlas": "AML.T0110.000",
+    "support": [
+      "AML.T0086",
+      "AML.T0098"
+    ],
+    "attack": [
+      "T1552.001",
+      "T1041"
+    ],
+    "owasp": [
+      "LLM01",
+      "LLM03"
+    ],
+    "mechanism": "A configured remote tool presents a description that asks an agent to read a local credential file before its normal task. The agent is told to place the file contents in a tool argument sent to the remote server; no marketplace installation is part of this alert.",
+    "effect": "the tool server receives the canary credential in an argument",
+    "block": "the agent refuses the file read or removes the credential from the tool argument"
+  },
+  {
+    "id": "D05",
+    "source": "AML.CS0055",
+    "category": "D",
+    "sub": "Agent tool & API misuse",
+    "phase": "Exploitation & Installation",
+    "atlas": "AML.T0053",
+    "support": [
+      "AML.T0100",
+      "AML.T0051.001"
+    ],
+    "attack": [
+      "T1059"
+    ],
+    "owasp": [
+      "LLM01",
+      "LLM03"
+    ],
+    "mechanism": "A computer-use agent visits a page claiming it must perform a verification procedure. The page persuades the agent to copy a shell command into its terminal and execute it, although terminal execution was not part of the user's authorized browsing task.",
+    "effect": "the agent executes the canary command in the terminal",
+    "block": "the agent treats the webpage instruction as untrusted and avoids terminal execution"
+  },
+  {
+    "id": "D06",
+    "source": "AML.CS0063",
+    "category": "D",
+    "sub": "Agent tool & API misuse",
+    "phase": "Actions on Objectives",
+    "atlas": "AML.T0053",
+    "support": [
+      "AML.T0051.001"
+    ],
+    "attack": [],
+    "owasp": [
+      "LLM01",
+      "LLM03"
+    ],
+    "mechanism": "A calendar invitation contains instructions that are retrieved by an assistant with authorized calendar tools. A later conversation turn is used to induce deletion or creation of events unrelated to the user's scheduling request.",
+    "effect": "the calendar tool performs the unauthorized test-event change",
+    "block": "the assistant leaves the test event unchanged and declines the injected action"
+  },
+  {
+    "id": "D07",
+    "source": "AML.CS0066",
+    "category": "D",
+    "sub": "Agent tool & API misuse",
+    "phase": "Actions on Objectives",
+    "atlas": "AML.T0080.000",
+    "support": [
+      "AML.T0053",
+      "AML.T0051.001"
+    ],
+    "attack": [
+      "T1041"
+    ],
+    "owasp": [
+      "LLM01",
+      "LLM03",
+      "LLM02"
+    ],
+    "mechanism": "A connected assistant retrieves an adversarial email during an ordinary inbox task. Hidden instructions attempt to persist in memory and cause later retrieval and outward transmission of information through the assistant's connected services.",
+    "effect": "a later agent tool action transfers a canary item outside the inbox",
+    "block": "the assistant rejects the persistent instruction and prevents the tool transfer"
+  },
+  {
+    "id": "D08",
+    "source": "AML.CS0067",
+    "category": "D",
+    "sub": "Agent tool & API misuse",
+    "phase": "Actions on Objectives",
+    "atlas": "AML.T0053",
+    "support": [
+      "AML.T0055",
+      "AML.T0091.000"
+    ],
+    "attack": [
+      "T1552.001"
+    ],
+    "owasp": [
+      "LLM01",
+      "LLM03",
+      "LLM02"
+    ],
+    "mechanism": "A repository automation agent reads attacker-controlled issue content framed as a compliance task. The instruction asks the agent to use its file-reading tool to inspect process credentials and transform a secret before emitting it in the workflow output.",
+    "effect": "the transformed canary secret appears in the workflow output",
+    "block": "the file-reading boundary prevents access to the process credentials"
+  },
+  {
+    "id": "D09",
+    "source": "AML.CS0068",
+    "category": "D",
+    "sub": "Autonomous offensive operations",
+    "phase": "Exploitation & Installation",
+    "atlas": "AML.T0117",
+    "support": [
+      "AML.T0116",
+      "AML.T0122"
+    ],
+    "attack": [
+      "T1190"
+    ],
+    "owasp": [],
+    "mechanism": "An evaluation agent pursues a challenge objective by exploring infrastructure beyond its assigned environment. It selects an alternative path, obtains access material, and attempts remote exploitation without a new human instruction for each step.",
+    "effect": "the agent reaches the out-of-scope canary service",
+    "block": "the evaluation boundary prevents access to the out-of-scope service",
+    "non_adversarial": true
+  },
+  {
+    "id": "D10",
+    "source": "AML.CS0069",
+    "category": "D",
+    "sub": "Autonomous offensive operations",
+    "phase": "Actions on Objectives",
+    "atlas": "AML.T0117",
+    "support": [
+      "AML.T0116",
+      "AML.T0126"
+    ],
+    "attack": [
+      "T1595",
+      "T1190",
+      "T1005"
+    ],
+    "owasp": [],
+    "mechanism": "An operator assigns a compromised coding agent a target and connects scanning, browser, and database tools. Between occasional human stage gates, the agent selects vulnerabilities, attempts access, and collects material through a multi-step offensive workflow.",
+    "effect": "the agent collects a canary record after the controlled access chain",
+    "block": "the agent's offensive chain is stopped before access to the canary record"
+  },
+  {
+    "id": "D11",
+    "source": "AML.CS0070",
+    "category": "D",
+    "sub": "Autonomous offensive operations",
+    "phase": "Reconnaissance",
+    "atlas": "AML.T0116",
+    "support": [
+      "AML.T0117",
+      "AML.T0049"
+    ],
+    "attack": [
+      "T1595",
+      "T1190"
+    ],
+    "owasp": [],
+    "mechanism": "After an initial operator task, an autonomous agent searches exposed services, downloads public exploit material, checks prerequisites, and revises its target selection when one path proves unsuitable. No further operator command is required for each change of approach.",
+    "effect": "the agent selects and probes a new canary target on its own",
+    "block": "the agent completes prerequisite checks but obtains no access to the target"
+  },
+  {
+    "id": "D12",
+    "source": "AML.CS0071",
+    "category": "D",
+    "sub": "Autonomous offensive operations",
+    "phase": "Actions on Objectives",
+    "atlas": "AML.T0124",
+    "support": [
+      "AML.T0116",
+      "AML.T0118.001"
+    ],
+    "attack": [
+      "T1595",
+      "T1078",
+      "T1005"
+    ],
+    "owasp": [],
+    "mechanism": "A controller assigns reconnaissance, authentication, and exploitation tasks to several autonomous agents. Their findings are shared and used to rank subsequent attack paths, allowing the framework to redirect activity across connected systems.",
+    "effect": "the coordinated agents obtain the designated canary records",
+    "block": "the coordinated attack is contained before canary records are reached"
+  }
+]
