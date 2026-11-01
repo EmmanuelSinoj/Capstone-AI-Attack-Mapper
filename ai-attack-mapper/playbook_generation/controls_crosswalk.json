@@ -1,0 +1,225 @@
+{
+  "version": "crosswalk-v1-draft",
+  "status": "DRAFT for team review (Shadi, 2026-10-31). Control families are Category E (Defense & Governance) controls, one per Mapper sub-cluster. OWASP IDs use the Mapper's OWASP LLM Top 10 (2026) numbering.",
+  "sub_clusters": {
+    "A": {
+      "AI-assisted phishing": {
+        "control_family": "Email and identity protection",
+        "description": "Filter and authenticate inbound messages, and train users to verify unusual requests, since AI-written lures remove the usual spelling and tone cues.",
+        "owasp_llm": [],
+        "containment_steps": [
+          "Quarantine the message and every copy delivered to other mailboxes, and block the sender domain and any links or attachments.",
+          "Identify users who clicked or replied; reset their credentials and revoke active sessions.",
+          "Check mail and sign-in logs for follow-on activity from the same campaign and warn affected teams."
+        ]
+      },
+      "AI-assisted fraud & deepfakes": {
+        "control_family": "Identity verification and fraud controls",
+        "description": "Require out-of-band confirmation and liveness or document checks for high-value requests, because voice, video and documents can be synthesized.",
+        "owasp_llm": [],
+        "containment_steps": [
+          "Freeze the requested transaction, account change or onboarding until identity is confirmed through a separate, known channel.",
+          "Preserve the audio, video or documents used, and flag the identity data as compromised.",
+          "Review other requests from the same identity, device or session for the same pattern."
+        ]
+      },
+      "AI-assisted malware": {
+        "control_family": "Endpoint detection and AI-API egress monitoring",
+        "description": "Detect malware behaviour on endpoints and watch for unexpected calls to LLM APIs, since malware may fetch commands or code from a model at run time.",
+        "owasp_llm": [],
+        "containment_steps": [
+          "Isolate the affected hosts from the network and preserve memory and disk evidence.",
+          "Block the malware's hashes and the LLM API endpoints or keys it uses at the proxy and firewall.",
+          "Revoke any API keys or credentials found on the hosts and report abused keys to the AI provider."
+        ]
+      },
+      "AI-assisted command & control": {
+        "control_family": "Network egress control for AI services",
+        "description": "Allow only approved AI services and accounts to be reached from internal hosts, and inspect AI-service traffic, because public AI APIs can be used as covert command channels.",
+        "owasp_llm": [],
+        "containment_steps": [
+          "Block the AI service accounts, assistants or endpoints used as the relay at the egress proxy.",
+          "Isolate hosts that contacted the relay and hunt for the same beaconing pattern across the network.",
+          "Report the abused accounts or assistants to the AI provider for takedown."
+        ]
+      }
+    },
+    "B": {
+      "Prompt injection & jailbreaking": {
+        "control_family": "Input and output guardrails with system-prompt hardening",
+        "description": "Screen prompts and responses with a layered detector and keep the system prompt hardened and versioned, since jailbreak wording changes faster than fixed rules.",
+        "owasp_llm": ["LLM01"],
+        "containment_steps": [
+          "Block or rate-limit the session or client that sent the payload and keep the full prompt and response as evidence.",
+          "Check whether the response leaked the system prompt or produced restricted content, and record the attack family.",
+          "Add the payload and paraphrased variants to the replay set and run the auto-hardening cycle for this attack family."
+        ]
+      },
+      "Poisoning & backdoor": {
+        "control_family": "Training-data provenance and model validation",
+        "description": "Track where training and fine-tuning data come from, validate it before use, and test models for backdoor triggers before release.",
+        "owasp_llm": ["LLM05"],
+        "containment_steps": [
+          "Stop serving or roll back the affected model to the last version trained on verified data.",
+          "Identify and remove the poisoned samples or data sources, and preserve them for analysis.",
+          "Retrain or fine-tune from clean data and re-test for the trigger behaviour before redeploying."
+        ]
+      },
+      "AI supply chain": {
+        "control_family": "AI supply-chain verification",
+        "description": "Pin, sign and scan models, datasets, packages and plugins from registries, and keep an AI bill of materials so a malicious artifact can be traced to every system using it.",
+        "owasp_llm": ["LLM04"],
+        "containment_steps": [
+          "Remove the malicious artifact from every environment and block its name, version and hash in internal mirrors.",
+          "Rotate credentials and secrets that were reachable from systems where the artifact was loaded.",
+          "Replace it with a verified version and report the artifact to the registry maintainers."
+        ]
+      },
+      "Extraction, inversion & adversarial": {
+        "control_family": "Model access control and query limits",
+        "description": "Authenticate model access, limit query rates and output detail, and harden models against adversarial inputs.",
+        "owasp_llm": ["LLM02"],
+        "containment_steps": [
+          "Suspend the accounts or API keys behind the suspicious query pattern and preserve the query logs.",
+          "Lower query limits and reduce output detail such as confidence scores for the affected endpoint.",
+          "Assess what model behaviour or training data may have been exposed and notify data owners if needed."
+        ]
+      }
+    },
+    "C": {
+      "RAG poisoning & data extraction": {
+        "control_family": "Retrieval data governance",
+        "description": "Control who can add content to retrieval sources, check documents before indexing, and enforce the user's access rights at retrieval time.",
+        "owasp_llm": ["LLM09", "LLM02"],
+        "containment_steps": [
+          "Remove the poisoned or exposed documents from the index and re-index from trusted sources.",
+          "Restrict write access to the knowledge base and review recent contributions.",
+          "Identify answers or users affected by the bad retrievals and correct or notify them."
+        ]
+      },
+      "Conversation & hidden-context compromise": {
+        "control_family": "Context isolation and secret handling",
+        "description": "Keep secrets, credentials and other users' data out of the model's context, and isolate sessions so one conversation cannot read another.",
+        "owasp_llm": ["LLM08", "LLM02"],
+        "containment_steps": [
+          "Rotate any secret, key or credential that appeared in the model's context or output.",
+          "Purge exposed conversation history and confirm session isolation between users.",
+          "Remove the sensitive data from system prompts and tool context, and notify affected users if personal data leaked."
+        ]
+      },
+      "Prompt & memory manipulation": {
+        "control_family": "Conversation and memory integrity",
+        "description": "Validate and label untrusted content before it enters prompts or saved memory, and let users review and reset what the assistant remembers.",
+        "owasp_llm": ["LLM01"],
+        "containment_steps": [
+          "Clear the manipulated memory entries or conversation state for the affected accounts.",
+          "Block the source content (page, file or message) that carried the injected instructions.",
+          "Review actions or answers given while the manipulation was active and correct them."
+        ]
+      },
+      "Prompt injection against LLM security tools": {
+        "control_family": "Layered review of LLM security verdicts",
+        "description": "Never let an LLM-based security tool be the only gate: confirm its verdicts with independent detectors or human review, especially for 'safe' verdicts on suspicious input.",
+        "owasp_llm": ["LLM01"],
+        "containment_steps": [
+          "Re-scan the evaded files, emails or code with a non-LLM detector and quarantine anything malicious.",
+          "Strip or neutralise embedded instructions in inputs before they reach the security tool.",
+          "Route high-risk items to human review until the tool is re-tested against this evasion."
+        ]
+      },
+      "Plugin RCE & insecure output handling": {
+        "control_family": "Output encoding and execution sandboxing",
+        "description": "Treat model output as untrusted: encode it before rendering and run any generated code or plugin call in a sandbox with least privilege.",
+        "owasp_llm": ["LLM10"],
+        "containment_steps": [
+          "Disable the vulnerable plugin, renderer or code-execution feature until it is patched.",
+          "Check the host or browser sessions where the output executed for compromise and isolate them if needed.",
+          "Add output encoding and sandboxing, then re-test with the original payload."
+        ]
+      },
+      "LLM service abuse & cost": {
+        "control_family": "Credential protection and usage limits",
+        "description": "Protect AI API keys and cloud credentials, and set spending limits, quotas and alerts on LLM usage.",
+        "owasp_llm": ["LLM06"],
+        "containment_steps": [
+          "Revoke the stolen or abused API keys and cloud credentials and issue new ones.",
+          "Apply spending caps and rate limits on the affected account and stop unauthorised workloads.",
+          "Find how the keys leaked (repository, logs, client code) and remove them from there."
+        ]
+      }
+    },
+    "D": {
+      "Agent tool & API misuse": {
+        "control_family": "Least-privilege agent tools with human approval",
+        "description": "Give agents only the tools and permissions the task needs, treat tool output and retrieved content as untrusted, and require human approval for sensitive actions.",
+        "owasp_llm": ["LLM03", "LLM01"],
+        "containment_steps": [
+          "Pause the agent and revoke the tokens and permissions its tools used.",
+          "Review the agent's tool-call log to find every action taken and undo or contain each one.",
+          "Reduce the agent's tool permissions and require approval for file, network and data-export actions before re-enabling it."
+        ]
+      },
+      "Autonomous offensive operations": {
+        "control_family": "AI-enabled attack monitoring and response",
+        "description": "Expect faster, multi-step attacks run by AI agents: monitor for machine-speed scanning and exploitation, and automate containment of exposed systems.",
+        "owasp_llm": [],
+        "containment_steps": [
+          "Block the source infrastructure and isolate the systems that were scanned or exploited.",
+          "Patch or take offline the vulnerabilities the agent exploited, starting with internet-facing systems.",
+          "Hunt for persistence and data access across the attack chain and report the operator's AI accounts to the provider."
+        ]
+      }
+    }
+  },
+  "category_defaults": {
+    "A": {
+      "control_family": "Security awareness and AI-aware threat detection",
+      "description": "Assume attacker tooling is AI-assisted: tune detections and user training for faster, more convincing attacks.",
+      "owasp_llm": [],
+      "containment_steps": [
+        "Contain the affected accounts or hosts and preserve evidence.",
+        "Block the indicators of compromise linked to the attack.",
+        "Review related activity for other victims of the same campaign."
+      ]
+    },
+    "B": {
+      "control_family": "AI model and pipeline security",
+      "description": "Protect the model, its training pipeline and its distribution with access control, validation and monitoring.",
+      "owasp_llm": [],
+      "containment_steps": [
+        "Restrict access to the affected model or pipeline and preserve logs.",
+        "Roll back to the last verified model version if behaviour has changed.",
+        "Investigate the attack path and close it before restoring access."
+      ]
+    },
+    "C": {
+      "control_family": "LLM application security controls",
+      "description": "Secure the application layer around the model: inputs, retrieval, context, output handling and usage.",
+      "owasp_llm": [],
+      "containment_steps": [
+        "Disable the affected application feature and preserve request logs.",
+        "Rotate any exposed secrets and remove exposed data.",
+        "Fix the weakness and re-test with the original input before re-enabling."
+      ]
+    },
+    "D": {
+      "control_family": "Agent governance and oversight",
+      "description": "Limit agent autonomy and permissions, log every tool call, and keep a human in the loop for high-impact actions.",
+      "owasp_llm": ["LLM03"],
+      "containment_steps": [
+        "Pause the agent and revoke its credentials.",
+        "Review its action log and contain each harmful action.",
+        "Reduce its permissions and add approval steps before re-enabling."
+      ]
+    }
+  },
+  "out_of_scope": {
+    "control_family": "No action (informational)",
+    "description": "The Mapper judged this alert out of scope for the attack taxonomy.",
+    "owasp_llm": [],
+    "containment_steps": [
+      "No containment needed: the Mapper classified this alert as out of scope.",
+      "Spot-check the alert if it was flagged by the detector, to confirm it is not a missed attack."
+    ]
+  }
+}
